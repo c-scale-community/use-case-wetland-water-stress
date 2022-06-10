@@ -1,3 +1,4 @@
+import logging
 import re
 from dataclasses import dataclass
 from datetime import datetime
@@ -23,11 +24,29 @@ def _daterange_from_safe_stem(stem: str) -> DateRange:
     return datetime.strptime(s_str, DATE_FORMAT), datetime.strptime(e_str, DATE_FORMAT)
 
 
-def load_s1_dataset(files: Sequence[Path], bands: Set[str]) -> Dataset:
+class FileFilterError(RuntimeError):
+    pass
+
+
+def _add_band(file: Path, bands: Set[str]) -> Tuple[str, Path]:
+    for band in bands:
+        if band.lower() in file.stem.lower():
+            return (band, file)
+
+    raise FileFilterError(f"none of {bands} associated with {file}.")
+
+
+def is_file_for_bands(file: Path, bands: Set[str]) -> bool:
+    for band in bands:
+        if band.lower() in file.stem.lower():
+            return True
+    return False
+
+
+def load_s1_dataset(files: Sequence[Tuple[str, Path]]) -> Dataset:
     data_vars = dict()
     min_time = datetime.max
-    for band in bands:
-        file = [f for f in files if band.lower() in f.stem.lower()][0]
+    for band, file in files:
         with rasterio.open(file) as src:
             _, crs = src.get_gcps()
             with WarpedVRT(src, resampling=Resampling.bilinear) as vrt:
@@ -44,8 +63,9 @@ def load_s1_dataset(files: Sequence[Path], bands: Set[str]) -> Dataset:
 
 def load_s1_datasets_from_file_list(file_list: Path, bands: Set[str]) -> Sequence[Dataset]:
     safes = map(Path, file_list.read_text().splitlines())
-    files = [[f for f in (s / "measurement").glob("*.tiff")] for s in safes]
-    return [load_s1_dataset(fs, bands) for fs in files]
+    band_files = [[_add_band(f, bands) for f in (s / "measurement").glob("*.tiff") if is_file_for_bands(f, bands)]
+                  for s in safes]
+    return [load_s1_dataset(bf) for bf in band_files if len(bf) > 0]
 
 
 @dataclass

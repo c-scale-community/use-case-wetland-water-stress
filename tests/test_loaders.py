@@ -4,13 +4,14 @@ from typing import Tuple, Sequence, Set
 from rasterio.crs import CRS
 from xarray import Dataset
 
-from loaders import DateRange, load_s1_datasets_from_file_list, ROI, load_rois
+from rattlinbog.loaders import DateRange, load_s1_datasets_from_file_list, ROI, load_rois
 
 FloatBBox = Tuple[float, float, float, float]
 
 
 def test_loaded_data_arrays_from_list(path_to_file_list):
     arrays = load_s1_datasets_from_file_list(path_to_file_list, bands={'VH'})
+    assert len(arrays) == 4
     assert_dataset_has(arrays[0], expected_bands={'VH'},
                        expected_bounds=(14.998117204417797, 47.573239187100604, 18.935188791209686, 49.479297581063086),
                        expected_crs=CRS.from_epsg(4326),
@@ -23,6 +24,10 @@ def test_loaded_data_arrays_from_list(path_to_file_list):
                        expected_bounds=(10.682511614023792, 48.217672991959255, 14.669717319061082, 50.123224509758344),
                        expected_crs=CRS.from_epsg(4326),
                        expected_observed_time=(datetime(2021, 12, 30, 16, 59, 46), datetime(2021, 12, 30, 17, 0, 11)))
+    assert_dataset_has(arrays[3], expected_bands={'VH'},
+                       expected_bounds=(8.87466159290116, 46.482527084688044, 12.74313020725043, 48.38184834366949),
+                       expected_crs=CRS.from_epsg(4326),
+                       expected_observed_time=(datetime(2021, 12, 15, 5, 26, 59), datetime(2021, 12, 15, 5, 27, 24)))
 
 
 def assert_dataset_has(actual: Dataset, expected_bands: Set[str], expected_bounds: FloatBBox, expected_crs,
