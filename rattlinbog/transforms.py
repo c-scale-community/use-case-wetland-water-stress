@@ -1,7 +1,9 @@
 from abc import abstractmethod
+from pathlib import Path
 
 import numpy as np
 import xarray as xr
+from rattlinbog.serialize import store_dataset
 
 from rattlinbog.data_group import DataGroup
 
@@ -70,4 +72,17 @@ class RoundToInt16(TransformDataGroup):
     def __call__(self, x: DataGroup) -> DataGroup:
         for k in x:
             x[k] = [ds.round().astype(np.int16) for ds in x[k]]
+        return x
+
+
+class StoreAsNetCDF(TransformDataGroup):
+    def __init__(self, out_dir: Path):
+        self._out_dir = out_dir
+
+    def __call__(self, x: DataGroup) -> DataGroup:
+        for k in x:
+            for ds in x[k]:
+                out_path = self._out_dir / k
+                out_path.mkdir(parents=True, exist_ok=True)
+                store_dataset(out_path / f"{ds.attrs['name']}.nc", ds)
         return x

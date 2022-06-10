@@ -6,7 +6,8 @@ import xarray as xr
 from xarray import Dataset
 
 from rattlinbog.data_group import DataGroup
-from rattlinbog.transforms import CoarsenAvgSpatially, ClipRoi, ConcatTimeSeries, ClipValues, RoundToInt16
+from rattlinbog.transforms import CoarsenAvgSpatially, ClipRoi, ConcatTimeSeries, ClipValues, RoundToInt16, \
+    StoreAsNetCDF
 
 
 def test_coarsen_data_group_spatially_trimming_edges():
@@ -80,3 +81,29 @@ def test_round_to_int16():
     assert_group_eq(rounded(data_group), dict(area_0=make_dataset([[[10, 11], [10, 10]],
                                                                    [[12, 12], [11, 11]]], dtype=np.int16)))
 
+
+def test_store_as_net_cdf(tmp_path):
+    storage_path = tmp_path / "storage"
+    data_group = make_data_group(
+        dict(area_0=[make_dataset([[[1, 2], [5, 6]],
+                                   [[3, 4], [7, 8]]], attrs=dict(name="dataset_0")),
+                     make_dataset([[[11, 12], [15, 16]],
+                                   [[13, 14], [17, 18]]], attrs=dict(name="dataset_1"))],
+             area_1=[make_dataset([[[0.1, 0.2], [0.3, 0.4]],
+                                   [[0.5, 0.6], [0.7, 0.8]]], attrs=dict(name="dataset_0"))]))
+    stored = StoreAsNetCDF(storage_path)
+    stored(data_group)
+
+    xr.testing.assert_equal(xr.open_dataset(storage_path / "area_0/dataset_0.nc"),
+                            make_dataset([[[1, 2], [5, 6]],
+                                          [[3, 4], [7, 8]]], attrs=dict(name="dataset_0")))
+    xr.testing.assert_equal(xr.open_dataset(storage_path / "area_0/dataset_1.nc"),
+                            make_dataset([[[11, 12], [15, 16]],
+                                          [[13, 14], [17, 18]]], attrs=dict(name="dataset_1")))
+    xr.testing.assert_equal(xr.open_dataset(storage_path / "area_1/dataset_0.nc"),
+                            make_dataset([[[0.1, 0.2], [0.3, 0.4]],
+                                          [[0.5, 0.6], [0.7, 0.8]]], attrs=dict(name="dataset_0")))
+
+
+def assert_dataset_eq(actual: Dataset, expected: Dataset):
+    xr.testing.assert_equal(actual, expected)
