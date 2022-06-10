@@ -1,14 +1,17 @@
 from abc import abstractmethod
 from pathlib import Path
+from typing import Sequence, Callable
 
 import numpy as np
 import xarray as xr
+from xarray import Dataset
+
 from rattlinbog.serialize import store_dataset
 
 from rattlinbog.data_group import DataGroup
 
 try:
-    from typing import Protocol, Sequence
+    from typing import Protocol
 except ImportError:
     from typing_extensions import Protocol
 
@@ -85,4 +88,15 @@ class StoreAsNetCDF(TransformDataGroup):
                 out_path = self._out_dir / k
                 out_path.mkdir(parents=True, exist_ok=True)
                 store_dataset(out_path / f"{ds.attrs['name']}.nc", ds)
+        return x
+
+
+class NameDatasets(TransformDataGroup):
+    def __init__(self, name_dataset_fn: Callable[[Dataset], str]):
+        self._name_dataset_fn = name_dataset_fn
+
+    def __call__(self, x: DataGroup) -> DataGroup:
+        for ds in x.values():
+            for d in ds:
+                d.attrs['name'] = self._name_dataset_fn(d)
         return x

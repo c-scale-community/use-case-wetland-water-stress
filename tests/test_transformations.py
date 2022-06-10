@@ -7,7 +7,7 @@ from xarray import Dataset
 
 from rattlinbog.data_group import DataGroup
 from rattlinbog.transforms import CoarsenAvgSpatially, ClipRoi, ConcatTimeSeries, ClipValues, RoundToInt16, \
-    StoreAsNetCDF
+    StoreAsNetCDF, NameDatasets
 
 
 def test_coarsen_data_group_spatially_trimming_edges():
@@ -17,9 +17,9 @@ def test_coarsen_data_group_spatially_trimming_edges():
              area_1=[make_dataset([[[2, 1, 3], [2, 1, 3]]])])
     )
     coarsen = CoarsenAvgSpatially(stride=2)
-    assert_group_eq(coarsen(data_group), dict(area_0=make_dataset([[[2]],
-                                                                   [[3 / 2]]]),
-                                              area_1=make_dataset([[[3 / 2]]])))
+    assert_group_arrays_eq(coarsen(data_group), dict(area_0=make_dataset([[[2]],
+                                                                          [[3 / 2]]]),
+                                                     area_1=make_dataset([[[3 / 2]]])))
 
 
 def make_data_group(in_datas: Dict[str, Sequence[Dataset]]) -> DataGroup:
@@ -38,7 +38,7 @@ def make_dataset(values, attrs=None, times=None, dtype=None) -> Dataset:
     return ds
 
 
-def assert_group_eq(actual: DataGroup, expected_datas: Dict[str, Dataset]) -> None:
+def assert_group_arrays_eq(actual: DataGroup, expected_datas: Dict[str, Dataset]) -> None:
     for k, ds in expected_datas.items():
         xr.testing.assert_equal(actual[k][0]['1'], ds['1'])
 
@@ -57,9 +57,10 @@ def test_concat_sorted():
                      make_dataset([[2, 1], [1, 2]], attrs=dict(time=datetime(2021, 1, 1)))])
     )
     stacked = ConcatTimeSeries()
-    assert_group_eq(stacked(data_group), dict(area_0=make_dataset([[[2, 1], [1, 2]],
-                                                                   [[2, 2], [2, 2]]], times=[datetime(2021, 1, 1),
-                                                                                             datetime(2021, 1, 2)])))
+    assert_group_arrays_eq(stacked(data_group), dict(area_0=make_dataset([[[2, 1], [1, 2]],
+                                                                          [[2, 2], [2, 2]]],
+                                                                         times=[datetime(2021, 1, 1),
+                                                                                datetime(2021, 1, 2)])))
 
 
 def test_clamp():
@@ -68,8 +69,8 @@ def test_clamp():
                                    [[2, 0], [0, 1]]])])
     )
     clamped = ClipValues(vmin=1, vmax=4)
-    assert_group_eq(clamped(data_group), dict(area_0=make_dataset([[[4, 2], [3, 4]],
-                                                                   [[2, 1], [1, 1]]])))
+    assert_group_arrays_eq(clamped(data_group), dict(area_0=make_dataset([[[4, 2], [3, 4]],
+                                                                          [[2, 1], [1, 1]]])))
 
 
 def test_round_to_int16():
@@ -78,8 +79,27 @@ def test_round_to_int16():
                                    [[11.5, 11.6], [11.4, 11]]], dtype=np.float32)])
     )
     rounded = RoundToInt16()
-    assert_group_eq(rounded(data_group), dict(area_0=make_dataset([[[10, 11], [10, 10]],
-                                                                   [[12, 12], [11, 11]]], dtype=np.int16)))
+    assert_group_arrays_eq(rounded(data_group), dict(area_0=make_dataset([[[10, 11], [10, 10]],
+                                                                          [[12, 12], [11, 11]]], dtype=np.int16)))
+
+
+def test_namer():
+    data_group = make_data_group(
+        dict(area_0=[make_dataset([[0]], attrs=dict(some="distinguishing_attribute"))])
+    )
+
+    def names_dataset(ds: Dataset) -> str:
+        return f"foo_{ds.attrs['some']}"
+
+    named = NameDatasets(names_dataset)
+    assert_group_dataset_attrs_eq(named(data_group), dict(area_0=[dict(some="distinguishing_attribute",
+                                                                       name="foo_distinguishing_attribute")]))
+
+
+def assert_group_dataset_attrs_eq(actual: DataGroup, expected_attrs: Dict[str, Dict]) -> None:
+    for k, ds_attrs in expected_attrs.items():
+        for a_d, e_attrs in zip(actual[k], ds_attrs):
+            assert a_d.attrs == e_attrs
 
 
 def test_store_as_net_cdf(tmp_path):
