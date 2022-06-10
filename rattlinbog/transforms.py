@@ -100,3 +100,11 @@ class NameDatasets(TransformDataGroup):
             for d in ds:
                 d.attrs['name'] = self._name_dataset_fn(d)
         return x
+
+
+class EatMyData(TransformDataGroup):
+    def __call__(self, x: DataGroup) -> DataGroup:
+        groups = list(x.keys())
+        for g in groups:
+            del x[g]
+        return x

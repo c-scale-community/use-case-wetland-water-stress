@@ -7,7 +7,7 @@ from xarray import Dataset
 
 from rattlinbog.data_group import DataGroup
 from rattlinbog.transforms import CoarsenAvgSpatially, ClipRoi, ConcatTimeSeries, ClipValues, RoundToInt16, \
-    StoreAsNetCDF, NameDatasets
+    StoreAsNetCDF, NameDatasets, EatMyData
 
 
 def test_coarsen_data_group_spatially_trimming_edges():
@@ -127,3 +127,11 @@ def test_store_as_net_cdf(tmp_path):
 
 def assert_dataset_eq(actual: Dataset, expected: Dataset):
     xr.testing.assert_equal(actual, expected)
+
+
+def test_eat_my_data():
+    data_group = make_data_group(dict(area_0=[make_dataset([[0]]),
+                                              make_dataset([[1]])],
+                                      area_1=[make_dataset([[1]])]))
+    eaten = EatMyData()
+    assert len(eaten(data_group)) == 0
