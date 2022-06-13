@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Dict, Sequence
+from typing import Dict, Sequence, Union
 
 import numpy as np
 import xarray as xr
@@ -7,7 +7,7 @@ from xarray import Dataset
 
 from rattlinbog.data_group import DataGroup
 from rattlinbog.transforms import CoarsenAvgSpatially, ClipRoi, ConcatTimeSeries, ClipValues, RoundToInt16, \
-    StoreAsNetCDF, NameDatasets, EatMyData
+    StoreAsNetCDF, NameDatasets, EatMyData, SortByTime
 
 
 def test_coarsen_data_group_spatially_trimming_edges():
@@ -38,9 +38,13 @@ def make_dataset(values, attrs=None, times=None, dtype=None) -> Dataset:
     return ds
 
 
-def assert_group_arrays_eq(actual: DataGroup, expected_datas: Dict[str, Dataset]) -> None:
+def assert_group_arrays_eq(actual: DataGroup, expected_datas: Dict[str, Union[Dataset, Sequence[Dataset]]]) -> None:
     for k, ds in expected_datas.items():
-        xr.testing.assert_equal(actual[k][0]['1'], ds['1'])
+        if isinstance(ds, list):
+            for a, e in zip(actual[k], ds):
+                xr.testing.assert_equal(a['1'], e['1'])
+        else:
+            xr.testing.assert_equal(actual[k][0]['1'], ds['1'])
 
 
 def test_clip_roi_bounds(vh_datasets, ramsar_rois):
@@ -51,16 +55,31 @@ def test_clip_roi_bounds(vh_datasets, ramsar_rois):
     assert clipped(data_group)['area_0'][0]['VH'].shape == (5260, 5149)
 
 
-def test_concat_sorted():
+def test_sort_by_time():
     data_group = make_data_group(
         dict(area_0=[make_dataset([[2, 2], [2, 2]], attrs=dict(time=datetime(2021, 1, 2))),
                      make_dataset([[2, 1], [1, 2]], attrs=dict(time=datetime(2021, 1, 1)))])
     )
-    stacked = ConcatTimeSeries()
-    assert_group_arrays_eq(stacked(data_group), dict(area_0=make_dataset([[[2, 1], [1, 2]],
-                                                                          [[2, 2], [2, 2]]],
-                                                                         times=[datetime(2021, 1, 1),
-                                                                                datetime(2021, 1, 2)])))
+    time_sorted = SortByTime()
+    assert_group_arrays_eq(time_sorted(data_group), dict(area_0=[
+        make_dataset([[2, 1], [1, 2]], attrs=dict(time=datetime(2021, 1, 1))),
+        make_dataset([[2, 2], [2, 2]], attrs=dict(time=datetime(2021, 1, 2)))
+    ]))
+
+
+def test_concat_time_series():
+    data_group = make_data_group(
+        dict(area_0=[make_dataset([[2, 2], [2, 2]], attrs=dict(time=datetime(2021, 1, 2))),
+                     make_dataset([[2, 1], [1, 2]], attrs=dict(time=datetime(2021, 1, 1)))])
+    )
+    concatenated = ConcatTimeSeries()(data_group)
+    assert_group_arrays_eq(concatenated, dict(area_0=make_dataset([[[2, 2], [2, 2]],
+                                                                   [[2, 1], [1, 2]]],
+                                                                  times=[datetime(2021, 1, 2),
+                                                                         datetime(2021, 1, 1)])))
+    assert_group_dataset_attrs_eq(concatenated, dict(area_0=[dict(time=datetime(2021, 1, 2),
+                                                                  from_ts=datetime(2021, 1, 2),
+                                                                  to_ts=datetime(2021, 1, 1))]))
 
 
 def test_clamp():
@@ -96,7 +115,7 @@ def test_namer():
                                                                        name="foo_distinguishing_attribute")]))
 
 
-def assert_group_dataset_attrs_eq(actual: DataGroup, expected_attrs: Dict[str, Dict]) -> None:
+def assert_group_dataset_attrs_eq(actual: DataGroup, expected_attrs: Dict[str, Sequence[Dict]]) -> None:
     for k, ds_attrs in expected_attrs.items():
         for a_d, e_attrs in zip(actual[k], ds_attrs):
             assert a_d.attrs == e_attrs

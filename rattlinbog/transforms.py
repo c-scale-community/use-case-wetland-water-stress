@@ -6,9 +6,8 @@ import numpy as np
 import xarray as xr
 from xarray import Dataset
 
-from rattlinbog.serialize import store_dataset
-
 from rattlinbog.data_group import DataGroup
+from rattlinbog.serialize import store_dataset
 
 try:
     from typing import Protocol
@@ -51,12 +50,22 @@ class ClipRoi(TransformDataGroup):
         return x
 
 
+class SortByTime(TransformDataGroup):
+    def __call__(self, x: DataGroup) -> DataGroup:
+        for k in x:
+            x[k] = sorted(x[k], key=lambda d: d.attrs['time'])
+        return x
+
+
 class ConcatTimeSeries(TransformDataGroup):
     def __call__(self, x: DataGroup) -> DataGroup:
         for k in x:
-            sorted_ds = sorted(x[k], key=lambda d: d.attrs['time'])
-            times = [d.attrs['time'] for d in sorted_ds]
-            x[k] = [xr.concat(sorted_ds, dim='time').assign_coords({'time': times})]
+            ds = x[k]
+            times = [d.attrs['time'] for d in ds]
+            cc = xr.concat(ds, dim='time').assign_coords({'time': times})
+            cc.attrs['from_ts'] = times[0]
+            cc.attrs['to_ts'] = times[-1]
+            x[k] = [cc]
         return x
 
 
