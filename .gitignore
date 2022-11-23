@@ -49,6 +49,7 @@ MANIFEST
 
 # Per-project virtualenvs
 .venv*/
+venv/
 
 # ignore netcdf files for now
 *.nc
