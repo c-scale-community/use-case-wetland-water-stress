@@ -41,18 +41,17 @@ def restructure(tile: str, parameter_file_ds_root: Path, mask_file_ds_root: Path
         return ds['orbits'].mean(dim='orbit').expand_dims(parameter=[name])
 
     parameters_arrays = xr.concat([collapse_orbits(load_harmonic_orbits(parameter_files, p), p)
-                                   for p in parameters], dim='parameter')
+                                   for p in parameters], dim='parameter').chunk({'parameter': -1, 'y': 1000, 'x': 1000})
 
     mask_tile_root = mask_file_ds_root / f"EQUI7_{grid_name}" / tile_name
     mask_file = gather_files(mask_tile_root, yeoda_naming_convention)['filepath'].iloc[0]
-    mask = rioxarray.open_rasterio(mask_file)
+    mask = rioxarray.open_rasterio(mask_file).chunk({'band': 1, 'y': 1000, 'x': 1000})
 
     restructured_ds = Dataset(dict(params=parameters_arrays, mask=mask[0]))
-    restructured_ds = restructured_ds.chunk({'parameter': -1, 'y': 1000, 'x': 1000})
 
     encoding = make_encoding_for_compression({'cname': 'zstd', 'clevel': 5}, restructured_ds)
 
-    smart_name = Path(str(YeodaFilename(dict(var_name=f'{parameter_file_ds_root.parent}-MASK',
+    smart_name = Path(str(YeodaFilename(dict(var_name=f'{parameter_file_ds_root.parent.name}-MASK',
                                              extra_field=YeodaFilename.from_filename(mask_file.name)['extra_field'],
                                              grid_name=grid_name,
                                              tile_name=tile_name))))
