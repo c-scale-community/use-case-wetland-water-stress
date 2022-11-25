@@ -46,7 +46,7 @@ def train_random_forest(data_zarr: Path, dst: Path, n_iter=10):
     }
 
     clf = RandomForestClassifier()
-    search = RandomizedSearchCV(clf, param_space, cv=3, n_iter=n_iter)
+    search = RandomizedSearchCV(clf, param_space, cv=3, n_iter=n_iter, n_jobs=-1)
     fitted = search.fit(samples.T, labels)
     DataFrame(fitted.cv_results_).to_csv(dst / f"{datetime.now().strftime(DATE_FORMAT)}_cv_results.csv")
     print(fitted.best_params_)
