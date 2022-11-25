@@ -117,3 +117,34 @@ class EatMyData(TransformDataGroup):
         for g in groups:
             del x[g]
         return x
+
+
+class TransformDataGroupToGroupSequence(Protocol):
+    @abstractmethod
+    def __call__(self, x: DataGroup) -> Sequence[DataGroup]:
+        ...
+
+
+class ChunkGroup(TransformDataGroupToGroupSequence):
+    def __init__(self, size):
+        self._size = size
+
+    def __call__(self, x: DataGroup) -> Sequence[DataGroup]:
+        def slice_chunk(ds: Sequence[Dataset], i: int) -> Sequence[Dataset]:
+            ii = min(i + self._size, len(ds))
+            return ds[i:ii]
+
+        def can_chunk(ds: Sequence[Dataset], i: int) -> bool:
+            return i < len(ds)
+
+        iter_idx = 0
+        chunks = []
+        while True:
+            chunk = DataGroup({k: slice_chunk(ds, iter_idx) for k, ds in x.items() if can_chunk(ds, iter_idx)})
+            if len(chunk) == 0:
+                break
+
+            chunks.append(chunk)
+            iter_idx += self._size
+
+        return chunks

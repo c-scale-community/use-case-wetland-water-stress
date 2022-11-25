@@ -7,7 +7,7 @@ from xarray import Dataset
 
 from rattlinbog.data_group import DataGroup
 from rattlinbog.transforms import CoarsenAvgSpatially, ClipRoi, ConcatTimeSeries, ClipValues, RoundToInt16, \
-    StoreAsNetCDF, NameDatasets, EatMyData, SortByTime
+    StoreAsNetCDF, NameDatasets, EatMyData, SortByTime, ChunkGroup
 
 
 def test_coarsen_data_group_spatially_trimming_edges():
@@ -154,3 +154,16 @@ def test_eat_my_data():
                                       area_1=[make_dataset([[1]])]))
     eaten = EatMyData()
     assert len(eaten(data_group)) == 0
+
+
+def test_chunk_groups():
+    data_group = make_data_group(dict(area_0=[make_dataset([[0]]), make_dataset([[1]]), make_dataset([[2]])],
+                                      area_1=[make_dataset([[1]]), make_dataset([[2]])]))
+    chunked = ChunkGroup(size=2)(data_group)
+
+
+    assert len(chunked) == 2
+    assert_group_arrays_eq(chunked[0], dict(area_0=[make_dataset([[0]]), make_dataset([[1]])],
+                                            area_1=[make_dataset([[1]]), make_dataset([[2]])]))
+    assert_group_arrays_eq(chunked[1], dict(area_0=[make_dataset([[2]])]))
+
