@@ -8,6 +8,9 @@ from typing import Tuple, Sequence, Set
 import geopandas as pd
 import rasterio
 import rioxarray
+import xarray as xr
+
+from pandas import DataFrame
 from rasterio.enums import Resampling
 from rasterio.vrt import WarpedVRT
 from shapely.geometry import Polygon
@@ -77,3 +80,20 @@ class ROI:
 def load_rois(shape_file: Path) -> Sequence[ROI]:
     df = pd.read_file(shape_file)
     return [ROI(row['officialna'], row['geometry']) for _, row in df.iterrows()]
+
+
+def load_harmonic_orbits(harmonic_file_ds: DataFrame, variable: str) -> Dataset:
+    def scale_from_legacy_code(ds: Dataset) -> Dataset:
+        file = ds.encoding['source']
+        with rasterio.open(file) as rds:
+            tags = rds.tags()
+            scale = float(tags['scale_factor'])
+            return ds / scale
+
+    var_selection = harmonic_file_ds.loc[harmonic_file_ds['var_name'] == variable]
+    orbit_files = var_selection['filepath']
+    orbit_ds = xr.open_mfdataset(orbit_files, chunks={}, combine='nested', concat_dim='band', engine='rasterio',
+                                 combine_attrs='drop_conflicts', mask_and_scale=True, preprocess=scale_from_legacy_code)
+    orbit_ds = orbit_ds.rename_dims(band='orbit')
+    orbit_ds = orbit_ds.rename_vars(band_data='orbits')
+    return orbit_ds.assign_coords(orbit=('orbit', var_selection['extra_field']))
