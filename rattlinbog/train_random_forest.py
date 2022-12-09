@@ -8,7 +8,7 @@ import numpy as np
 import xarray as xr
 from pandas import DataFrame
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import RandomizedSearchCV
+from sklearn.model_selection import GridSearchCV
 
 from rattlinbog.loaders import DATE_FORMAT
 
@@ -36,17 +36,17 @@ def train_random_forest(data_zarr: Path, dst: Path, n_iter=10):
                        x=xr.DataArray(balanced_sample_indices[1], dims="samples"))
 
     param_space = {
-        'bootstrap': [True, False],
-        'n_estimators': [10, 100, 200, 400, 600, 800, 1000],
-        'criterion': ["gini", "entropy", "log_loss"],
-        'min_samples_leaf': [1, 2, 4],
-        'min_samples_split': [2, 5, 10],
-        'max_depth': [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, None],
-        'max_features': ["sqrt", "log2", None],
+        'bootstrap': [False],
+        'n_estimators': [300, 350, 400, 450, 500, 800],
+        'criterion': ["gini","log_loss"],
+        'min_samples_leaf': [1],
+        'min_samples_split': [2, 3, 4, 5],
+        'max_depth': [30, 60, 70, 80],
+        'max_features': ["sqrt", "log2"],
     }
 
-    clf = RandomForestClassifier()
-    search = RandomizedSearchCV(clf, param_space, cv=3, n_iter=n_iter, n_jobs=-1)
+    clf = RandomForestClassifier(n_jobs=16)
+    search = GridSearchCV(clf, param_space, cv=3)
     fitted = search.fit(samples.T, labels)
     DataFrame(fitted.cv_results_).to_csv(dst / f"{datetime.now().strftime(DATE_FORMAT)}_cv_results.csv")
     print(fitted.best_params_)
