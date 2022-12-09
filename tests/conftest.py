@@ -3,10 +3,10 @@ from typing import Optional
 
 import pytest
 import xarray as xr
+from approval_utilities.utils import create_directory_if_needed
 
 from approvaltests import Options, verify_with_namer_and_writer, Writer
 from approvaltests.core import Comparator
-from approvaltests.utils import create_directory_if_needed
 from xarray import Dataset
 
 from rattlinbog.loaders import load_s1_datasets_from_file_list, load_rois
