@@ -22,6 +22,8 @@ def sample_uniformly(ds: Dataset, sample_masks: Sequence[DataArray], n: int, see
         .assign_coords(samples=[m.name for m in sample_masks])
 
 
-def make_histogram_masks(da: DataArray, quantiles: Sequence[float]) -> Sequence[np.ndarray]:
-    quantiles = [-np.inf] + list(da.quantile(quantiles).values)
-    return [np.logical_and(da.values > quantiles[i], da.values <= quantiles[i + 1]) for i in range(len(quantiles) - 1)]
+def make_quantile_masks(da: DataArray, quantiles: Sequence[float]) -> Sequence[DataArray]:
+    qs = [-np.inf] + list(da.quantile(quantiles).values)
+    return [DataArray(np.logical_and(da.values > qs[i], da.values <= qs[i + 1]),
+                      dims=da.dims, coords=da.coords, name=f"quantile_{quantiles[i]}")
+            for i in range(len(qs) - 1)]
