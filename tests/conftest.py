@@ -1,10 +1,12 @@
+import random
 from pathlib import Path
 from typing import Optional
 
+import numpy as np
 import pytest
+import torch as th
 import xarray as xr
 from approval_utilities.utils import create_directory_if_needed
-
 from approvaltests import Options, verify_with_namer_and_writer, Writer
 from approvaltests.core import Comparator
 from xarray import Dataset
@@ -31,6 +33,20 @@ def path_to_shape_file():
 @pytest.fixture
 def vh_datasets(path_to_file_list):
     return load_s1_datasets_from_file_list(path_to_file_list, {'VH'})
+
+
+@pytest.fixture(scope='module')
+def fixed_seed():
+    py_state = random.getstate()
+    np_state = np.random.get_state()
+    th_state = th.random.get_rng_state()
+    random.seed(42)
+    np.random.seed(42)
+    th.random.manual_seed(42)
+    yield 42
+    random.setstate(py_state)
+    np.random.set_state(np_state)
+    th.random.set_rng_state(th_state)
 
 
 @pytest.fixture
