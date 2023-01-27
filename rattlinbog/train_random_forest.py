@@ -23,6 +23,7 @@ def train_random_forest(data_zarr: Path, dst: Path, n_iter=10):
     np.random.shuffle(choices_0)
     choices_1 = np.arange(indices_1.shape[1])
     np.random.shuffle(choices_1)
+
     if indices_0.shape[1] > indices_1.shape[1]:
         choices_0 = choices_0[:indices_1.shape[1]]
     else:

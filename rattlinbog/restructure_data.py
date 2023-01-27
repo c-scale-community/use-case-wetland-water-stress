@@ -1,6 +1,5 @@
 import argparse
 from pathlib import Path
-from typing import Dict
 
 import rioxarray
 import xarray as xr
@@ -9,24 +8,11 @@ from eotransform_pandas.filesystem.gather import gather_files
 from eotransform_pandas.filesystem.naming.geopathfinder_conventions import yeoda_naming_convention
 from equi7grid.equi7grid import Equi7Grid
 from geopathfinder.naming_conventions.yeoda_naming import YeodaFilename
-from numcodecs import Blosc
 from xarray import Dataset
 
+from rattlinbog.io_xarray.store_as_compressed_zarr import store_as_compressed_zarr
 from rattlinbog.loaders import load_harmonic_orbits
 from rattlinbog.rasterize_shape import get_sampling_from_tile
-
-
-def _maybe_with_grid_mapping(new_encoding: Dict, var_encoding: Dict) -> Dict:
-    if 'grid_mapping' in var_encoding:
-        new_encoding['grid_mapping'] = var_encoding['grid_mapping']
-    return new_encoding
-
-
-def make_encoding_for_compression(compression: Dict, dataset: Dataset) -> Dict:
-    compressor = Blosc(**compression)
-    encoding = {name: _maybe_with_grid_mapping({"compressor": compressor}, var.encoding)
-                for name, var in dataset.data_vars.items()}
-    return encoding
 
 
 def restructure(tile: str, parameter_file_ds_root: Path, mask_file_ds_root: Path, dst_root: Path):
@@ -49,7 +35,6 @@ def restructure(tile: str, parameter_file_ds_root: Path, mask_file_ds_root: Path
 
     restructured_ds = Dataset(dict(params=parameters_arrays, mask=mask[0]))
 
-    encoding = make_encoding_for_compression({'cname': 'zstd', 'clevel': 5}, restructured_ds)
 
     smart_name = Path(str(YeodaFilename(dict(var_name=f'{parameter_file_ds_root.parent.name}-MASK',
                                              extra_field=YeodaFilename.from_filename(mask_file.name)['extra_field'],
@@ -57,7 +42,8 @@ def restructure(tile: str, parameter_file_ds_root: Path, mask_file_ds_root: Path
                                              tile_name=tile_name))))
     out = dst_root / f"EQUI7_{grid_name}" / tile_name / smart_name.with_suffix('.zarr')
     out.parent.mkdir(parents=True, exist_ok=True)
-    restructured_ds.to_zarr(out, encoding=encoding)
+
+    store_as_compressed_zarr(restructured_ds, out)
 
 
 if __name__ == '__main__':

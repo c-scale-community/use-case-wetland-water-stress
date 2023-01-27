@@ -51,5 +51,6 @@ MANIFEST
 .venv*/
 venv/
 
-# ignore netcdf files for now
+# ignore netcdf and zarr files for now
 *.nc
+*.zarr
