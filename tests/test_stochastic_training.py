@@ -3,14 +3,18 @@ from typing import Optional
 
 import numpy as np
 import pytest
+import torch as th
 import xarray as xr
 from approvaltests import verify_with_namer_and_writer
 from numpy.random import RandomState
 from pytest_approvaltests_geo import GeoOptions, CompareGeoZarrs, ReportGeoZarrs, ExistingDirWriter
+from torch.utils.data import DataLoader
 from xarray import Dataset
 
 from rattlinbog.io_xarray.store_as_compressed_zarr import store_as_compressed_zarr
 from rattlinbog.sampling.sample_patches_from_dataset import sample_patches_from_dataset
+from rattlinbog.th_extensions.utils.data.streamed_xarray_dataset import StreamedXArrayDataset
+from rattlinbog.th_extensions.utils.dataset_splitters import split_to_params_and_labels
 
 
 # from watercloud_regularized.config.output import Compression
@@ -50,6 +54,12 @@ def tile_dataset():
     return xr.open_zarr(zarr)
 
 
+@pytest.fixture
+def torch_tile_dataset(tile_dataset):
+    sampled = sample_patches_from_dataset(tile_dataset, 32, 19, np.random.default_rng(42))
+    return StreamedXArrayDataset(sampled, split_to_params_and_labels)
+
+
 def test_stochastic_patch_samples_from_dataset(tile_dataset, verify_raster_as_geo_zarr):
     patches = list(sample_patches_from_dataset(tile_dataset, 32, 16, np.random.default_rng(42)))
     assert len(patches) == 16
@@ -61,3 +71,17 @@ def test_patch_samples_are_balanced(tile_dataset, verify_raster_as_geo_zarr):
     a_has_mask_pixles = patches[0]['mask'].sum().values.item() > 0
     b_has_mask_pixles = patches[1]['mask'].sum().values.item() > 0
     assert (a_has_mask_pixles and not b_has_mask_pixles) or (b_has_mask_pixles and not a_has_mask_pixles)
+
+
+def test_sampled_patches_as_torch_dataset_can_be_loaded_by_dataloader(torch_tile_dataset):
+    loader = DataLoader(torch_tile_dataset, batch_size=8)
+    assert_torch_batch_sizes(loader, [8, 8, 3])
+
+
+def assert_torch_batch_sizes(loader: DataLoader, expected_sizes):
+    def asser_tensor_and_get_batch_size(x, y):
+        assert th.is_tensor(x) and th.is_tensor(y)
+        assert x.shape[0] == y.shape[0]
+        return x.shape[0]
+
+    assert [asser_tensor_and_get_batch_size(*b) for b in loader] == expected_sizes
