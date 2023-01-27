@@ -13,7 +13,7 @@ ModelParams = Union[Iterator[Parameter], Dict[Any, Parameter]]
 # turn of inspections that collide with scikit-learn API requirements & style guide, see:
 # https://scikit-learn.org/stable/developers/develop.html
 # noinspection PyPep8Naming,PyAttributeOutsideInit
-class NNRegression(BaseEstimator):
+class NNEstimator(BaseEstimator):
     def __init__(self, net: Module, batch_size: int,
                  optim_factory: Callable[[ModelParams], Optimizer],
                  loss_fn: Callable[[Any, Any], Any]):
@@ -22,7 +22,7 @@ class NNRegression(BaseEstimator):
         self.optim_factory = optim_factory
         self.loss_fn = loss_fn
 
-    def fit(self, X: Dataset, y=None) -> "NNRegression":
+    def fit(self, X: Dataset, y=None) -> "NNEstimator":
         dataloader = DataLoader(X, batch_size=self.batch_size)
 
         self.net.train()

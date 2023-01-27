@@ -10,7 +10,7 @@ from torch.nn import Sigmoid, MSELoss
 from torch.optim.adam import Adam
 from torch.utils.data import IterableDataset
 
-from rattlinbog.estimators.nn_regression import NNRegression
+from rattlinbog.estimators.nn_regression import NNEstimator
 from rattlinbog.th_extensions.nn.unet import UNet
 
 
@@ -26,7 +26,7 @@ def nn_regression_params(unet):
 
 @pytest.fixture
 def nn_regression(unet, nn_regression_params):
-    return NNRegression(**nn_regression_params)
+    return NNEstimator(**nn_regression_params)
 
 
 @pytest.fixture
