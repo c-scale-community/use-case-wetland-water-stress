@@ -1,7 +1,7 @@
 import numpy as np
 from xarray import Dataset, DataArray
 
-from rattlinbog.sampling import sample_uniformly
+from rattlinbog.sampling.sample_uniformly import sample_uniformly
 
 
 def test_uniformly_sample_dataset():

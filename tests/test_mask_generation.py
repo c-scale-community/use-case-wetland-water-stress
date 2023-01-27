@@ -2,7 +2,8 @@ import numpy as np
 import pytest
 from xarray import DataArray
 
-from rattlinbog.sampling import make_quantile_masks, make_histogram_masks
+from rattlinbog.sampling.make_histogram_masks import make_histogram_masks
+from rattlinbog.sampling.make_quantile_masks import make_quantile_masks
 
 
 @pytest.fixture

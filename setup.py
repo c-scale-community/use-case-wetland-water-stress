@@ -14,7 +14,7 @@ setup(
     packages=find_packages(include=['rattlinbog', 'rattlinbog.*']),
     install_requires=["xarray", "rioxarray", "rasterio", "eotransform", "eotransform-xarray", "eotransform-pandas",
                       "geopandas", "jupyter", "numba", "numpy", "matplotlib", "dask", "distributed", "geopathfinder",
-                      "equi7grid", "affine", "zarr", "scikit-learn", "dask-ml"],
+                      "equi7grid", "affine", "zarr", "scikit-learn", "dask-ml", "torch"],
     extras_require={"test": ['pytest', 'pytest-cov', 'approvaltests'],
                     "views": ['holoviews', 'datashader', 'panel', 'param']},
     include_package_data=True,

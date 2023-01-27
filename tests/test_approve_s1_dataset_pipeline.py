@@ -1,5 +1,5 @@
+from approval_utilities.utilities.exceptions.exception_collector import gather_all_exceptions_and_throw
 from approvaltests.namer import NamerFactory
-from approvaltests.utilities.exceptions.exception_collector import gather_all_exceptions_and_throw
 
 from rattlinbog.data_group import group_datasets, GroupByRois
 from rattlinbog.transforms import ClipRoi, ConcatTimeSeries, CoarsenAvgSpatially, ClipValues, RoundToInt16
