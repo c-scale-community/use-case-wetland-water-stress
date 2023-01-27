@@ -94,7 +94,7 @@ def verify_dataset():
                    *,  # enforce keyword arguments - https://www.python.org/dev/peps/pep-3102/
                    options: Optional[Options] = None) -> None:
         options = options or Options()
-        # options = options.with_comparator(CompareNetCDFs())
+        options = options.with_comparator(CompareNetCDFs())
         options = options.for_file.with_extension(".nc")
 
         verify_with_namer_and_writer(
