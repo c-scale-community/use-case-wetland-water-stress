@@ -17,13 +17,6 @@ from rattlinbog.th_extensions.utils.data.streamed_xarray_dataset import Streamed
 from rattlinbog.th_extensions.utils.dataset_splitters import split_to_params_and_labels
 
 
-# from watercloud_regularized.config.output import Compression
-# from watercloud_regularized.io_xarray.store_in_zarr_archive import store_in_zarr_archive
-# from rattlinbog.sampling.sample_patches_from_dataset import sample_patches_from_dataset
-# from rattlinbog.th_extensions.utils.data.streamed_xarray_dataset import StreamedXArrayDataset
-# from rattlinbog.th_extensions.utils.dataset_splitters import sig0_autoencoder_splitter
-
-
 @pytest.fixture
 def verify_raster_as_geo_zarr(tmp_path):
     def verify(dataset: Dataset,
@@ -68,9 +61,9 @@ def test_stochastic_patch_samples_from_dataset(tile_dataset, verify_raster_as_ge
 
 def test_patch_samples_are_balanced(tile_dataset, verify_raster_as_geo_zarr):
     patches = list(sample_patches_from_dataset(tile_dataset, 32, 2, np.random.default_rng(42)))
-    a_has_mask_pixles = patches[0]['mask'].sum().values.item() > 0
-    b_has_mask_pixles = patches[1]['mask'].sum().values.item() > 0
-    assert (a_has_mask_pixles and not b_has_mask_pixles) or (b_has_mask_pixles and not a_has_mask_pixles)
+    a_has_mask_pixels = patches[0]['mask'].sum().values.item() > 0
+    b_has_mask_pixels = patches[1]['mask'].sum().values.item() > 0
+    assert (a_has_mask_pixels and not b_has_mask_pixels) or (b_has_mask_pixels and not a_has_mask_pixels)
 
 
 def test_sampled_patches_as_torch_dataset_can_be_loaded_by_dataloader(torch_tile_dataset):
