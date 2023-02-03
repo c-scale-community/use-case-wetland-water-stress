@@ -24,12 +24,13 @@ class NNEstimator(BaseEstimator):
 
     def fit(self, X: Dataset, y=None) -> "NNEstimator":
         dataloader = DataLoader(X, batch_size=self.batch_size)
+        model_device = next(self.net.parameters()).device
 
         self.net.train()
         optimizer = self.optim_factory(self.net.parameters())
         for x_batch, y_batch in dataloader:
-            estimate = self.net(x_batch)
-            loss = self.loss_fn(estimate, y_batch)
+            estimate = self.net(x_batch.to(device=model_device))
+            loss = self.loss_fn(estimate, y_batch.to(device=model_device))
 
             optimizer.zero_grad()
             loss.backward()
@@ -39,9 +40,10 @@ class NNEstimator(BaseEstimator):
         return self
 
     def predict(self, X: NDArray) -> NDArray:
+        model_device = next(self.net.parameters()).device
         with th.no_grad():
             self.net.eval()
-            return self.net(th.from_numpy(X).unsqueeze(0)).squeeze(0).cpu().numpy()
+            return self.net(th.from_numpy(X).unsqueeze(0).to(device=model_device)).squeeze(0).cpu().numpy()
 
     def _more_tags(self):
         return {'X_types': [Iterable[NDArray]], 'y_types': [Iterable[NDArray]]}

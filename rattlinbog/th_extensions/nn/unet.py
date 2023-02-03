@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Optional
+from typing import Optional, Sequence, List
 
 import torch as th
 from torch import nn as nn
@@ -62,7 +62,7 @@ class RemoveSkips(nn.Module):
 
 
 class UNet(nn.Module):
-    def __init__(self, in_dims, hidden, out_dims, out_activation: Optional[nn.Module] = None):
+    def __init__(self, in_dims: int, hidden: List[int], out_dims: int, out_activation: Optional[nn.Module] = None):
         super().__init__()
         self._encoding = nn.Sequential(*tuple(EncoderBlock(i, o)
                                               for i, o in zip([in_dims] + hidden[:-2], hidden[:-1])))

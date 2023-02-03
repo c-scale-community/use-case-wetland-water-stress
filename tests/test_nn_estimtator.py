@@ -2,6 +2,8 @@ from typing import Iterator, Tuple
 
 import numpy as np
 import pytest
+import torch as th
+import torch.cuda
 from approval_utilities.utilities.exceptions.multiple_exceptions import MultipleExceptions
 from numpy.typing import NDArray
 from sklearn import clone
@@ -20,13 +22,19 @@ def unet():
 
 
 @pytest.fixture
-def nn_regression_params(unet):
+def nn_estimator_params(unet):
     return dict(net=unet, batch_size=16, optim_factory=lambda p: Adam(p, lr=1e-2), loss_fn=MSELoss())
 
 
 @pytest.fixture
-def nn_regression(unet, nn_regression_params):
-    return NNEstimator(**nn_regression_params)
+def nn_estimator(unet, nn_estimator_params):
+    return NNEstimator(**nn_estimator_params)
+
+
+@pytest.fixture
+def nn_estimator_gpu(unet, nn_estimator_params):
+    nn_estimator_params['net'] = nn_estimator_params['net'].to(device=th.device('cuda'))
+    return NNEstimator(**nn_estimator_params)
 
 
 @pytest.fixture
@@ -68,25 +76,25 @@ def generated_dataset(one_input, zero_input, one_output, zero_output):
     return _GeneratedDataset
 
 
-def test_unet_regression_is_sklearn_compatible(nn_regression, nn_regression_params):
-    assert nn_regression.get_params() == nn_regression_params
-    nn_regression.set_params(batch_size=4)
+def test_unet_estimator_is_sklearn_compatible(nn_estimator, nn_estimator_params):
+    assert nn_estimator.get_params() == nn_estimator_params
+    nn_estimator.set_params(batch_size=4)
 
-    new_params = nn_regression_params.copy()
+    new_params = nn_estimator_params.copy()
     new_params['batch_size'] = 4
-    assert nn_regression.get_params() == new_params
-    check_estimator(clone(nn_regression))
+    assert nn_estimator.get_params() == new_params
+    check_estimator(clone(nn_estimator))
 
 
-def test_fit_unet_regression_label_data(nn_regression, generated_dataset, one_input, zero_input, one_output,
-                                        zero_output, fixed_seed):
+def test_fit_unet_estimator_to_label_data(nn_estimator, generated_dataset, one_input, zero_input, one_output,
+                                          zero_output, fixed_seed):
     gather_all_exceptions([(one_input, zero_input), (zero_input, one_output)],
-                          lambda p: assert_prediction_ne(nn_regression.predict(p[0]), p[1])).assert_any_is_true()
+                          lambda p: assert_prediction_ne(nn_estimator.predict(p[0]), p[1])).assert_any_is_true()
 
-    nn_regression.fit(generated_dataset(1000))
+    nn_estimator.fit(generated_dataset(1000))
 
-    assert_prediction_eq(nn_regression.predict(one_input), zero_output)
-    assert_prediction_eq(nn_regression.predict(zero_input), one_output)
+    assert_prediction_eq(nn_estimator.predict(one_input), zero_output)
+    assert_prediction_eq(nn_estimator.predict(zero_input), one_output)
 
 
 def gather_all_exceptions(params, code_to_execute):
@@ -117,3 +125,12 @@ def assert_prediction_ne(actual: NDArray, expected: NDArray) -> None:
 
 def assert_prediction_eq(actual: NDArray, expected: NDArray) -> None:
     np.testing.assert_array_equal(np.around(actual), expected)
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason='this test needs a cuda device')
+def test_nn_estimator_automagically_moves_input_data_to_device_of_nn(nn_estimator_gpu, generated_dataset, one_input,
+                                                                     zero_input, one_output, zero_output, fixed_seed):
+    nn_estimator_gpu.fit(generated_dataset(1000))
+
+    assert_prediction_eq(nn_estimator_gpu.predict(one_input), zero_output)
+    assert_prediction_eq(nn_estimator_gpu.predict(zero_input), one_output)
