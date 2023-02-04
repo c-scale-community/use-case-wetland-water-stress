@@ -6,6 +6,7 @@ from sklearn.base import BaseEstimator
 from torch.nn import Parameter, Module
 from torch.optim import Optimizer
 from torch.utils.data import Dataset, DataLoader
+from tqdm import tqdm
 
 ModelParams = Union[Iterator[Parameter], Dict[Any, Parameter]]
 
@@ -28,7 +29,10 @@ class NNEstimator(BaseEstimator):
 
         self.net.train()
         optimizer = self.optim_factory(self.net.parameters())
-        for x_batch, y_batch in dataloader:
+
+        estimated_len = getattr(X, 'estimated_len', None)
+        total = estimated_len // self.batch_size if estimated_len else None
+        for x_batch, y_batch in tqdm(dataloader, "fitting", total):
             estimate = self.net(x_batch.to(device=model_device))
             loss = self.loss_fn(estimate, y_batch.to(device=model_device))
 
