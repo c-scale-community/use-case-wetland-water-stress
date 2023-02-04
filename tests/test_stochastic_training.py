@@ -9,7 +9,7 @@ from approvaltests import verify_with_namer_and_writer
 from numpy.random import RandomState
 from pytest_approvaltests_geo import GeoOptions, CompareGeoZarrs, ReportGeoZarrs, ExistingDirWriter
 from torch.utils.data import DataLoader
-from xarray import Dataset
+from xarray import Dataset, DataArray
 
 from rattlinbog.io_xarray.store_as_compressed_zarr import store_as_compressed_zarr
 from rattlinbog.sampling.sample_patches_from_dataset import sample_patches_from_dataset
@@ -48,22 +48,63 @@ def tile_dataset():
 
 
 @pytest.fixture
-def torch_tile_dataset(tile_dataset):
-    sampled = sample_patches_from_dataset(tile_dataset, 32, 19, np.random.default_rng(42))
+def tile_dataset_with_nan():
+    mostly_nan = np.ones((2, 128, 128), dtype=np.float32)
+    mostly_nan[0, :96, :] = np.nan
+    mostly_nan[1, :, :96] = np.nan
+
+    mask = np.ones((128, 128), dtype=np.bool)
+    mask[:112, :] = False
+
+    return Dataset({
+        'params': make_raster(mostly_nan),
+        'mask': make_raster(mask)
+    })
+
+
+def make_raster(values):
+    coords = {
+        'y': ('y', np.arange(values.shape[-2])),
+        'x': ('x', np.arange(values.shape[-1])),
+        'spatial_ref': DataArray(0, attrs={'GeoTransform': '-0.5 1.0 0.0 -0.5 0.0 1.0'})
+    }
+    dims = ('y', 'x')
+    if values.ndim == 3:
+        coords['parameters'] = ('parameters', np.arange(values.shape[0]))
+        dims = ('parameters',) + dims
+
+    return DataArray(values, coords=coords, dims=dims)
+
+
+@pytest.fixture
+def fixed_rng():
+    return np.random.default_rng(42)
+
+
+@pytest.fixture
+def torch_tile_dataset(tile_dataset, fixed_rng):
+    sampled = sample_patches_from_dataset(tile_dataset, 32, 19, rnd_generator=fixed_rng)
     return StreamedXArrayDataset(sampled, split_to_params_and_labels)
 
 
-def test_stochastic_patch_samples_from_dataset(tile_dataset, verify_raster_as_geo_zarr):
-    patches = list(sample_patches_from_dataset(tile_dataset, 32, 16, np.random.default_rng(42)))
+def test_stochastic_patch_samples_from_dataset(tile_dataset, verify_raster_as_geo_zarr, fixed_rng):
+    patches = list(sample_patches_from_dataset(tile_dataset, 32, 16, rnd_generator=fixed_rng))
     assert len(patches) == 16
     verify_raster_as_geo_zarr(patches[0])
 
 
-def test_patch_samples_are_balanced(tile_dataset, verify_raster_as_geo_zarr):
-    patches = list(sample_patches_from_dataset(tile_dataset, 32, 2, np.random.default_rng(42)))
+def test_patch_samples_are_balanced(tile_dataset, verify_raster_as_geo_zarr, fixed_rng):
+    patches = list(sample_patches_from_dataset(tile_dataset, 32, 2, rnd_generator=fixed_rng))
     a_has_mask_pixels = patches[0]['mask'].sum().values.item() > 0
     b_has_mask_pixels = patches[1]['mask'].sum().values.item() > 0
     assert (a_has_mask_pixels and not b_has_mask_pixels) or (b_has_mask_pixels and not a_has_mask_pixels)
+
+
+def test_never_sample_patches_with_nans(tile_dataset_with_nan, verify_raster_as_geo_zarr, fixed_rng):
+    patches = list(sample_patches_from_dataset(tile_dataset_with_nan, 8, 4, rnd_generator=fixed_rng, never_nans=False))
+    assert any(patch['params'].isnull().any() for patch in patches)
+    patches = list(sample_patches_from_dataset(tile_dataset_with_nan, 8, 4, rnd_generator=fixed_rng, never_nans=True))
+    assert not any(patch['params'].isnull().any() for patch in patches)
 
 
 def test_sampled_patches_as_torch_dataset_can_be_loaded_by_dataloader(torch_tile_dataset):
