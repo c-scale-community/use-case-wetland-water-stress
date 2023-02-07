@@ -1,3 +1,4 @@
+from collections import defaultdict
 from typing import Iterator, Tuple
 
 import numpy as np
@@ -12,7 +13,7 @@ from torch.nn import Sigmoid, MSELoss
 from torch.optim.adam import Adam
 from torch.utils.data import IterableDataset
 
-from rattlinbog.estimators.nn_regression import NNEstimator
+from rattlinbog.estimators.nn_regression import NNEstimator, LogSink, LogConfig
 from rattlinbog.th_extensions.nn.unet import UNet
 
 
@@ -23,11 +24,11 @@ def unet():
 
 @pytest.fixture
 def nn_estimator_params(unet):
-    return dict(net=unet, batch_size=16, optim_factory=lambda p: Adam(p, lr=1e-2), loss_fn=MSELoss())
+    return dict(net=unet, batch_size=16, optim_factory=lambda p: Adam(p, lr=1e-2), loss_fn=MSELoss(), log_cfg=None)
 
 
 @pytest.fixture
-def nn_estimator(unet, nn_estimator_params):
+def nn_estimator(nn_estimator_params):
     return NNEstimator(**nn_estimator_params)
 
 
@@ -74,6 +75,18 @@ def generated_dataset(one_input, zero_input, one_output, zero_output):
             return iter(generate_data(self.size))
 
     return _GeneratedDataset
+
+
+@pytest.fixture
+def log_sink():
+    class _LogSpy(LogSink):
+        def __init__(self):
+            self.num_received = defaultdict(lambda: 0)
+
+        def add_scalar(self, tag, scalar_value, global_step=None):
+            self.num_received[tag] += 1
+
+    return _LogSpy()
 
 
 def test_unet_estimator_is_sklearn_compatible(nn_estimator, nn_estimator_params):
@@ -134,3 +147,11 @@ def test_nn_estimator_automagically_moves_input_data_to_device_of_nn(nn_estimato
 
     assert_prediction_eq(nn_estimator_gpu.predict(one_input), zero_output)
     assert_prediction_eq(nn_estimator_gpu.predict(zero_input), one_output)
+
+
+def test_write_train_statistics_to_logging_facilities_if_provided(nn_estimator_params, generated_dataset, log_sink,
+                                                                  fixed_seed):
+    nn_estimator_params['log_cfg'] = LogConfig(log_sink)
+    estimator = NNEstimator(**nn_estimator_params)
+    estimator.fit(generated_dataset(10 * nn_estimator_params['batch_size']))
+    assert log_sink.num_received['loss'] == 10
