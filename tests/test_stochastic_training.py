@@ -6,6 +6,7 @@ import pytest
 import torch as th
 import xarray as xr
 from approvaltests import verify_with_namer_and_writer
+from eotransform.utilities.profiling import PerformanceClock
 from numpy.random import RandomState
 from pytest_approvaltests_geo import GeoOptions, CompareGeoZarrs, ReportGeoZarrs, ExistingDirWriter
 from torch.utils.data import DataLoader
@@ -98,6 +99,17 @@ def test_patch_samples_are_balanced(tile_dataset, verify_raster_as_geo_zarr, fix
     a_has_mask_pixels = patches[0]['mask'].sum().values.item() > 0
     b_has_mask_pixels = patches[1]['mask'].sum().values.item() > 0
     assert (a_has_mask_pixels and not b_has_mask_pixels) or (b_has_mask_pixels and not a_has_mask_pixels)
+
+
+def test_patch_samples_caches_valid_indices_in_dataset(tile_dataset, fixed_rng):
+    init = PerformanceClock("init")
+    with init.measure():
+        next(iter(sample_patches_from_dataset(tile_dataset, 32, 2, rnd_generator=fixed_rng)))
+    cached = PerformanceClock("cached")
+    with cached.measure():
+        next(iter(sample_patches_from_dataset(tile_dataset, 32, 2, rnd_generator=fixed_rng)))
+
+    assert cached.total_measures < init.total_measures / 2
 
 
 def test_never_sample_patches_with_nans(tile_dataset_with_nan, verify_raster_as_geo_zarr, fixed_rng):
