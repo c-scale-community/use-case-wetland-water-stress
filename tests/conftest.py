@@ -1,4 +1,5 @@
 import random
+import sys
 from pathlib import Path
 from typing import Optional
 
@@ -13,6 +14,9 @@ from xarray import Dataset
 
 from rattlinbog.loaders import load_s1_datasets_from_file_list, load_rois
 from rattlinbog.serialize import store_dataset
+
+
+sys.path.append((Path(__file__).parent / "helpers").as_posix())
 
 
 @pytest.fixture

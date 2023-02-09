@@ -75,3 +75,4 @@ class NNEstimator(BaseEstimator):
 
     def _more_tags(self):
         return {'X_types': [Iterable[NDArray]], 'y_types': [Iterable[NDArray]]}
+

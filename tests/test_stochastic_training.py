@@ -11,8 +11,9 @@ from eotransform.utilities.profiling import PerformanceClock
 from numpy.random import RandomState
 from pytest_approvaltests_geo import GeoOptions, CompareGeoZarrs, ReportGeoZarrs, ExistingDirWriter
 from torch.utils.data import DataLoader
-from xarray import Dataset, DataArray
+from xarray import Dataset
 
+from factories import make_raster
 from rattlinbog.io_xarray.store_as_compressed_zarr import store_as_compressed_zarr
 from rattlinbog.sampling.sample_patches_from_dataset import sample_patches_from_dataset
 from rattlinbog.th_extensions.utils.data.streamed_xarray_dataset import StreamedXArrayDataset
@@ -64,20 +65,6 @@ def tile_dataset_with_nan():
         'params': make_raster(mostly_nan),
         'mask': make_raster(mask)
     })
-
-
-def make_raster(values):
-    coords = {
-        'y': ('y', np.arange(values.shape[-2])),
-        'x': ('x', np.arange(values.shape[-1])),
-        'spatial_ref': DataArray(0, attrs={'GeoTransform': '-0.5 1.0 0.0 -0.5 0.0 1.0'})
-    }
-    dims = ('y', 'x')
-    if values.ndim == 3:
-        coords['parameters'] = ('parameters', np.arange(values.shape[0]))
-        dims = ('parameters',) + dims
-
-    return DataArray(values, coords=coords, dims=dims)
 
 
 @pytest.fixture
