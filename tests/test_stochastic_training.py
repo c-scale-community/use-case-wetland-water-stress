@@ -44,7 +44,7 @@ def verify_raster_as_geo_zarr(tmp_path):
 @pytest.fixture
 def tile_dataset():
     zarr = Path(
-        "/eodc/private/tuwgeo/users/braml/data/wetland/hparam/V1M0R1/EQUI7_EU020M/E051N015T3/SIG0-HPAR-MASK____RAMSAR-AT-01_E051N015T3_EU020M__.zarr")
+        "/eodc/private/tuwgeo/users/braml/data/wetland/hparam/V1M0R1/EQUI7_EU020M/E051N015T3/SIG0-HPAR-MASK____RAMSAR-AT-01-ROI_E051N015T3_EU020M__.zarr")
     return xr.open_zarr(zarr)
 
 
