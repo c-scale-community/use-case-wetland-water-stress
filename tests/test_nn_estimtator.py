@@ -13,7 +13,7 @@ from torch.nn import Sigmoid, MSELoss
 from torch.optim.adam import Adam
 from torch.utils.data import IterableDataset
 
-from rattlinbog.estimators.nn_regression import NNEstimator, LogSink, LogConfig
+from rattlinbog.estimators.nn_estimator import NNEstimator, LogSink, LogConfig
 from rattlinbog.th_extensions.nn.unet import UNet
 
 
