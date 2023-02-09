@@ -29,7 +29,6 @@ def sample_patches_from_dataset(dataset: Dataset, patch_size: int, n_samples: in
         xy = balanced_sample_indices[:, i]
         selected_roi = RectInt(xy[1] - ps_h2, xy[1] + ps_h2, xy[0] - ps_h2, xy[0] + ps_h2)
         sampled = dataset.isel(selected_roi.to_slice_dict()).copy()
-        sampled = sampled.load()
         sampled.attrs['name'] = f"sample_{i}"
         yield sampled
 

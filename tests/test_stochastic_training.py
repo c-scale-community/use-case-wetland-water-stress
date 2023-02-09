@@ -1,3 +1,4 @@
+import time
 from pathlib import Path
 from typing import Optional
 
@@ -16,6 +17,8 @@ from rattlinbog.io_xarray.store_as_compressed_zarr import store_as_compressed_za
 from rattlinbog.sampling.sample_patches_from_dataset import sample_patches_from_dataset
 from rattlinbog.th_extensions.utils.data.streamed_xarray_dataset import StreamedXArrayDataset
 from rattlinbog.th_extensions.utils.dataset_splitters import split_to_params_and_labels
+
+HYSTERESIS = 0.2
 
 
 @pytest.fixture
@@ -88,6 +91,38 @@ def torch_tile_dataset(tile_dataset, fixed_rng):
     return StreamedXArrayDataset(sampled, split_to_params_and_labels)
 
 
+@pytest.fixture
+def tile_dataset_dummy():
+    mask = np.ones((128, 128), dtype=np.bool)
+    mask[:112, :] = False
+    return Dataset({
+        'params': make_raster(np.ones((2, 128, 128), dtype=np.float32)),
+        'mask': make_raster(mask)
+    })
+
+
+@pytest.fixture
+def splitter_with_loading_time():
+    class _DelayingSplit:
+        def __init__(self):
+            self.loading_time = 0.0
+
+        def set_loading_time(self, seconds):
+            self.loading_time = seconds
+
+        def __call__(self, *args, **kwargs):
+            time.sleep(self.loading_time)
+            return split_to_params_and_labels(*args, **kwargs)
+
+    return _DelayingSplit()
+
+
+@pytest.fixture
+def torch_tile_dataset_with_loading_delay(tile_dataset_dummy, fixed_rng, splitter_with_loading_time):
+    sampled = sample_patches_from_dataset(tile_dataset_dummy, 8, 16, rnd_generator=fixed_rng)
+    return StreamedXArrayDataset(sampled, splitter_with_loading_time)
+
+
 def test_stochastic_patch_samples_from_dataset(tile_dataset, verify_raster_as_geo_zarr, fixed_rng):
     patches = list(sample_patches_from_dataset(tile_dataset, 32, 16, rnd_generator=fixed_rng))
     assert len(patches) == 16
@@ -131,3 +166,21 @@ def assert_torch_batch_sizes(loader: DataLoader, expected_sizes):
         return x.shape[0]
 
     assert [asser_tensor_and_get_batch_size(*b) for b in loader] == expected_sizes
+
+
+def test_interleaved_loading_and_training(tile_dataset_dummy, splitter_with_loading_time):
+    splitter_with_loading_time.set_loading_time(0.1)
+
+    sampled = sample_patches_from_dataset(tile_dataset_dummy, 8, 16)
+    clock_init = PerformanceClock('init')
+    with clock_init.measure():
+        stream = StreamedXArrayDataset(sampled, splitter_with_loading_time)
+
+    assert clock_init.total_measures < 1.0
+
+    clock_loading = PerformanceClock('load')
+    with clock_loading.measure():
+        for _ in DataLoader(stream, batch_size=4):
+            time.sleep(0.4)
+
+    assert clock_loading.total_measures < 2.0 + HYSTERESIS  # < 2 # prev 1.617
