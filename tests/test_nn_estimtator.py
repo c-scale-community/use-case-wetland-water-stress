@@ -13,7 +13,10 @@ from torch.nn import Sigmoid, MSELoss
 from torch.optim.adam import Adam
 from torch.utils.data import IterableDataset
 
+from factories import make_raster
+from rattlinbog.estimators.apply import apply_classification
 from rattlinbog.estimators.nn_estimator import NNEstimator, LogSink, LogConfig
+from rattlinbog.estimators.wetland_classifier import WetlandClassifier
 from rattlinbog.th_extensions.nn.unet import UNet
 
 
@@ -36,6 +39,11 @@ def nn_estimator(nn_estimator_params):
 def nn_estimator_gpu(unet, nn_estimator_params):
     nn_estimator_params['net'] = nn_estimator_params['net'].to(device=th.device('cuda'))
     return NNEstimator(**nn_estimator_params)
+
+
+@pytest.fixture
+def wl_estimator(nn_estimator_params):
+    return WetlandClassifier(**nn_estimator_params)
 
 
 @pytest.fixture
@@ -155,3 +163,8 @@ def test_write_train_statistics_to_logging_facilities_if_provided(nn_estimator_p
     estimator = NNEstimator(**nn_estimator_params)
     estimator.fit(generated_dataset(10 * nn_estimator_params['batch_size']))
     assert log_sink.num_received['loss'] == 10
+
+
+def test_wetland_classification_estimator_protocol(wl_estimator, one_input):
+    assert wl_estimator.classes == ['is_wetland']
+    assert apply_classification(wl_estimator).to(make_raster(one_input).chunk()).shape == (1, *one_input.shape[1:])
