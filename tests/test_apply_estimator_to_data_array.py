@@ -1,49 +1,15 @@
-from abc import abstractmethod
 from typing import Sequence
 
 import numpy as np
 import pytest
 import xarray as xr
 from numpy.typing import NDArray
-from sklearn.base import ClassifierMixin
-from xarray import DataArray
 
 from factories import make_raster
+from rattlinbog.estimators.apply import apply_classification
+from rattlinbog.estimators.base import ClassEstimatorMixin
 
 
-# turn of inspections that collide with scikit-learn API requirements & style guide, see:
-# https://scikit-learn.org/stable/developers/develop.html
-# noinspection PyPep8Naming,PyAttributeOutsideInit
-class ClassEstimatorMixin(ClassifierMixin):
-    @abstractmethod
-    def predict(self, X):
-        ...
-
-    @property
-    @abstractmethod
-    def classes(self) -> Sequence[str]:
-        ...
-
-
-class _DataArrayMapper:
-    def __init__(self, estimator: ClassEstimatorMixin):
-        self._estimator = estimator
-
-    def to(self, array: DataArray) -> DataArray:
-        classes = self._estimator.classes
-        c_sizes = array.chunksizes
-        out_template = array[0, :, :].drop_vars(array.dims[0]).expand_dims({'classes': classes})
-        estimated = array.data.map_blocks(lambda block: self._estimator.predict(block), drop_axis=0, new_axis=0,
-                                          chunks=(len(classes), c_sizes['y'], c_sizes['x']), meta=out_template.data)
-        return out_template.copy(data=estimated)
-
-
-def apply_classification(estimator: ClassEstimatorMixin) -> _DataArrayMapper:
-    return _DataArrayMapper(estimator)
-
-
-# turn of inspections that collide with scikit-learn API requirements & style guide, see:
-# https://scikit-learn.org/stable/developers/develop.html
 # noinspection PyPep8Naming,PyAttributeOutsideInit
 class AlwaysTrue(ClassEstimatorMixin):
     def __init__(self):
@@ -63,8 +29,6 @@ def estimate_always_true():
     return AlwaysTrue()
 
 
-# turn of inspections that collide with scikit-learn API requirements & style guide, see:
-# https://scikit-learn.org/stable/developers/develop.html
 # noinspection PyPep8Naming,PyAttributeOutsideInit
 class MultiClassEstimator(ClassEstimatorMixin):
     def predict(self, X: NDArray) -> NDArray:
