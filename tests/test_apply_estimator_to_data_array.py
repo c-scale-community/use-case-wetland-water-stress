@@ -1,10 +1,11 @@
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from typing import Sequence
 
 import numpy as np
 import pytest
 import xarray as xr
-from numpy._typing import NDArray
+from numpy.typing import NDArray
+from sklearn.base import ClassifierMixin
 from xarray import DataArray
 
 from factories import make_raster
@@ -13,7 +14,7 @@ from factories import make_raster
 # turn of inspections that collide with scikit-learn API requirements & style guide, see:
 # https://scikit-learn.org/stable/developers/develop.html
 # noinspection PyPep8Naming,PyAttributeOutsideInit
-class ClassEstimator(ABC):
+class ClassEstimatorMixin(ClassifierMixin):
     @abstractmethod
     def predict(self, X):
         ...
@@ -25,7 +26,7 @@ class ClassEstimator(ABC):
 
 
 class _DataArrayMapper:
-    def __init__(self, estimator: ClassEstimator):
+    def __init__(self, estimator: ClassEstimatorMixin):
         self._estimator = estimator
 
     def to(self, array: DataArray) -> DataArray:
@@ -37,14 +38,14 @@ class _DataArrayMapper:
         return out_template.copy(data=estimated)
 
 
-def apply_classification(estimator: ClassEstimator) -> _DataArrayMapper:
+def apply_classification(estimator: ClassEstimatorMixin) -> _DataArrayMapper:
     return _DataArrayMapper(estimator)
 
 
 # turn of inspections that collide with scikit-learn API requirements & style guide, see:
 # https://scikit-learn.org/stable/developers/develop.html
 # noinspection PyPep8Naming,PyAttributeOutsideInit
-class AlwaysTrue(ClassEstimator):
+class AlwaysTrue(ClassEstimatorMixin):
     def __init__(self):
         self.num_predictions = 0
 
@@ -65,7 +66,7 @@ def estimate_always_true():
 # turn of inspections that collide with scikit-learn API requirements & style guide, see:
 # https://scikit-learn.org/stable/developers/develop.html
 # noinspection PyPep8Naming,PyAttributeOutsideInit
-class MultiClassEstimator(ClassEstimator):
+class MultiClassEstimator(ClassEstimatorMixin):
     def predict(self, X: NDArray) -> NDArray:
         return np.full((4,) + X.shape[1:], 0.25)
 
