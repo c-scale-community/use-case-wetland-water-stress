@@ -44,6 +44,10 @@ class LogSink(Protocol):
     def add_scalars(self, main_tag, tag_scalar_dict, global_step=None):
         ...
 
+    @abstractmethod
+    def add_image(self, tag, img_tensor, global_step=None):
+        ...
+
 
 @dataclass
 class Validation:
@@ -52,13 +56,23 @@ class Validation:
 
 
 @dataclass
-class ValidationLogging:
+class IntervalLogging:
     frequency: int
-    validator: Callable[[Estimator], Validation]
     log_sink: LogSink
+
+
+@dataclass
+class ValidationLogging(IntervalLogging):
+    validator: Callable[[Estimator], Validation]
+
+
+@dataclass
+class ImageLogging(IntervalLogging):
+    image_producer: Callable[[Estimator], NDArray]
 
 
 @dataclass
 class LogConfig:
     log_sink: LogSink
     validation: Optional[ValidationLogging] = None
+    image: Optional[ImageLogging] = None

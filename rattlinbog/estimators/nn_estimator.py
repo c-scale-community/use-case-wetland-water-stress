@@ -51,14 +51,18 @@ class NNEstimator(Estimator, ABC):
 
     def _log_progress(self, x_batch, y_batch, loss, step):
         self.log_cfg.log_sink.add_scalar("loss", loss.item(), step)
-        if self._should_validate(step):
+        if self._should_log(self.log_cfg.validation, step):
             self.log_cfg.log_sink.add_scalars("score", self.score(x_batch, y_batch), step)
             validation = self.log_cfg.validation.validator(self)
             self.log_cfg.validation.log_sink.add_scalar("loss", validation.loss, step)
             self.log_cfg.validation.log_sink.add_scalars("score", validation.score, step)
 
-    def _should_validate(self, step):
-        return self.log_cfg.validation and step % self.log_cfg.validation.frequency == 0
+        if self._should_log(self.log_cfg.image, step):
+            self.log_cfg.image.log_sink.add_image("images", self.log_cfg.image.image_producer(self), step)
+
+    @staticmethod
+    def _should_log(cfg, step):
+        return cfg and step % cfg.frequency == 0
 
     def predict(self, X: NDArray) -> NDArray:
         model_device = next(self.net.parameters()).device

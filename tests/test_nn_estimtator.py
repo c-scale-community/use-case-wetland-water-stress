@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Iterator, Tuple, Dict
+from typing import Iterator, Tuple
 
 import numpy as np
 import pytest
@@ -15,8 +15,8 @@ from torch.utils.data import IterableDataset
 
 from factories import make_raster
 from rattlinbog.estimators.apply import apply
-from rattlinbog.estimators.base import Estimator, LogSink, ValidationLogging, LogConfig, Validation, EstimateDescription, \
-    Score
+from rattlinbog.estimators.base import Estimator, LogSink, ValidationLogging, LogConfig, Validation, \
+    EstimateDescription, Score, ImageLogging
 from rattlinbog.estimators.nn_estimator import NNEstimator
 from rattlinbog.estimators.wetland_classifier import WetlandClassifier
 from rattlinbog.th_extensions.nn.unet import UNet
@@ -112,6 +112,7 @@ def make_log_sink():
         def __init__(self):
             self.received_scalar_steps = defaultdict(list)
             self.received_scalars_steps = defaultdict(list)
+            self.received_image_steps = defaultdict(list)
             self.received_scalars_names = dict()
 
         def add_scalar(self, tag, scalar_value, global_step=None):
@@ -120,6 +121,9 @@ def make_log_sink():
         def add_scalars(self, main_tag, tag_scalar_dict, global_step=None):
             self.received_scalars_steps[main_tag].append(global_step)
             self.received_scalars_names[main_tag] = set(tag_scalar_dict.keys())
+
+        def add_image(self, tag, img_tensor, global_step=None):
+            self.received_image_steps[tag].append(global_step)
 
     return _LogSpy()
 
@@ -198,7 +202,7 @@ def test_write_validation_score_statistics_to_logging_facilities_at_specified_fr
 
     train_sink = make_log_sink()
     valid_sink = make_log_sink()
-    nn_estimator_logging.set_params(log_cfg=LogConfig(train_sink, ValidationLogging(2, validation_fn, valid_sink)))
+    nn_estimator_logging.set_params(log_cfg=LogConfig(train_sink, ValidationLogging(2, valid_sink, validation_fn)))
 
     nn_estimator_logging.fit(generated_dataset(10 * nn_estimator_params['batch_size']))
 
@@ -215,9 +219,18 @@ def assert_received_log_at_correct_frequency(train_sink, valid_sink, n_training_
 
 
 def test_log_image_at_specified_frequency(nn_estimator_params, nn_estimator_logging, generated_dataset, log_sink):
-    # nn_estimator_logging.set_params(log_cfg=LogConfig(log_sink, ImageConfig(2, image_fn, log_sink)))
-    ...
+    def image_fn(estimator: Estimator) -> NDArray:
+        return np.zeros((1, 8, 8))
 
+    nn_estimator_logging.set_params(log_cfg=LogConfig(log_sink, image=ImageLogging(5, log_sink, image_fn)))
+
+    nn_estimator_logging.fit(generated_dataset(10 * nn_estimator_params['batch_size']))
+
+    assert_received_images_at_correct_frequency(log_sink, n_training_steps=10, img_freq=5)
+
+
+def assert_received_images_at_correct_frequency(log_sink, n_training_steps, img_freq):
+    assert log_sink.received_image_steps['images'] == list(range(0, n_training_steps, img_freq))
 
 
 def test_wetland_classification_estimator_protocol(wl_estimator, one_input, one_output):
