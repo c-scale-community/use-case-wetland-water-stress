@@ -40,7 +40,7 @@ class NNEstimator(Estimator, ABC):
             loss = self.loss_fn(estimate, y_batch.to(device=model_device))
 
             if self.log_cfg:
-                self._log_progress(x_batch, loss, step)
+                self._log_progress(x_batch, y_batch, loss, step)
 
             optimizer.zero_grad()
             loss.backward()
@@ -49,10 +49,10 @@ class NNEstimator(Estimator, ABC):
         self.is_fitted_ = True
         return self
 
-    def _log_progress(self, x_batch, loss, step):
+    def _log_progress(self, x_batch, y_batch, loss, step):
         self.log_cfg.log_sink.add_scalar("loss", loss.item(), step)
         if self._should_validate(step):
-            self.log_cfg.log_sink.add_scalars("score", self.score(x_batch), step)
+            self.log_cfg.log_sink.add_scalars("score", self.score(x_batch, y_batch), step)
             validation = self.log_cfg.validation.validator(self)
             self.log_cfg.validation.log_sink.add_scalar("loss", validation.loss, step)
             self.log_cfg.validation.log_sink.add_scalars("score", validation.score, step)

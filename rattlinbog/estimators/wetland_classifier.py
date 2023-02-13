@@ -1,13 +1,16 @@
+from dataclasses import asdict
 from typing import Callable, Any, Optional
 
 import numpy as np
 from numpy.typing import NDArray
 from sklearn.base import ClassifierMixin
+from sklearn.metrics import confusion_matrix
 from torch.nn import Module, BCEWithLogitsLoss
 from torch.optim import Optimizer, Adam
 
-from rattlinbog.estimators.base import EstimateDescription, LogConfig
+from rattlinbog.estimators.base import EstimateDescription, LogConfig, Score
 from rattlinbog.estimators.nn_estimator import NNEstimator, ModelParams
+from rattlinbog.scoring.classification import score_first_order, score_second_order, score_zero_order
 
 
 def sigmoid(x: NDArray) -> NDArray:
@@ -21,6 +24,14 @@ class WetlandClassifier(NNEstimator, ClassifierMixin):
 
     def predict(self, X: NDArray) -> NDArray:
         return sigmoid(super().predict(X))
+
+    def score(self, X: NDArray, y: NDArray) -> Score:
+        estimates = (self.predict(X) > 0.5).ravel()
+        cm = confusion_matrix(y.ravel(), estimates)
+        zro = score_zero_order(cm)
+        fst = score_first_order(zro)
+        snd = score_second_order(fst)
+        return {**asdict(fst), **asdict(snd)}
 
     @property
     def out_description(self) -> EstimateDescription:

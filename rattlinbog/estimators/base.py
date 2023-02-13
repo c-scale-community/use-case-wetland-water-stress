@@ -1,6 +1,8 @@
 from abc import abstractmethod
 from dataclasses import dataclass
 from typing import Sequence, Dict, Callable, Optional
+
+from numpy.typing import NDArray
 from typing_extensions import Protocol
 
 from sklearn.base import BaseEstimator
@@ -20,11 +22,11 @@ class EstimateDescription:
 # noinspection PyPep8Naming,PyAttributeOutsideInit
 class Estimator(BaseEstimator):
     @abstractmethod
-    def predict(self, X):
+    def predict(self, X: NDArray) -> NDArray:
         ...
 
     @abstractmethod
-    def score(self, X) -> Score:
+    def score(self, X: NDArray, y: NDArray) -> Score:
         ...
 
     @property

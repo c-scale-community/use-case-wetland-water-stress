@@ -33,7 +33,7 @@ def nn_estimator_params(unet):
 
 
 class NNEstimatorStub(NNEstimator):
-    def score(self, X) -> Score:
+    def score(self, X: NDArray, y: NDArray) -> Score:
         return {'SCORE_A': 0.42, 'SCORE_B': 42}
 
     @property
@@ -214,6 +214,7 @@ def assert_received_log_at_correct_frequency(train_sink, valid_sink, n_training_
     assert valid_sink.received_scalars_names['score'] == {'VAL_SCORE'}
 
 
-def test_wetland_classification_estimator_protocol(wl_estimator, one_input):
+def test_wetland_classification_estimator_protocol(wl_estimator, one_input, one_output):
     assert wl_estimator.out_description.dims == {'class_probs': ['is_wetland']}
     assert apply(wl_estimator).to(make_raster(one_input).chunk()).load().shape == (1, *one_input.shape[1:])
+    assert {'F1', 'BA', 'TPR', 'TNR'}.issubset(set(wl_estimator.score(one_input, one_output).keys()))
