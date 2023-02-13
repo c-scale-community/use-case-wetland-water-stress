@@ -3,23 +3,28 @@ from dataclasses import dataclass
 import numpy as np
 import pytest
 from numpy.typing import NDArray
+from sklearn.metrics import confusion_matrix
 
 
 @dataclass
-class BinaryClassScore0th:
-    TP: int
-    TN: int
-    FP: int
-    FN: int
+class ClassScore1st:
+    TPR: float
+    TNR: float
+    PPV: float
 
 
-def score_binary_classification_zero_order(estimates: NDArray, ground_truth: NDArray) -> BinaryClassScore0th:
-    return BinaryClassScore0th(4, 0, 0, 0)
+def score_confusion_matrix_first_order(confusion_matrix: NDArray) -> ClassScore1st:
+    return ClassScore1st(1.0, 0.0, 1.0)
+
+
+def make_mask(description):
+    values = [e == 'T' for e in description]
+    return np.array(values, dtype=bool)
 
 
 @pytest.mark.parametrize("estimates, ground_truth, expected_scores", [
     # perfect true positives
-    (np.ones((1, 2, 2)), np.ones((1, 2, 2)), BinaryClassScore0th(TP=4, TN=0, FP=0, FN=0))
+    (make_mask("TTTT"), make_mask("TTTT"), ClassScore1st(TPR=1.0, TNR=0.0, PPV=1.0)),
 ])
-def test_calculating_zero_order_scores(estimates, ground_truth, expected_scores):
-    assert score_binary_classification_zero_order(estimates, ground_truth) == expected_scores
+def test_calculating_first_order_scores(estimates, ground_truth, expected_scores):
+    assert score_confusion_matrix_first_order(confusion_matrix(estimates, ground_truth)) == expected_scores
