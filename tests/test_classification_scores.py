@@ -53,29 +53,32 @@ def as_a(*values) -> NDArray:
     return np.asarray(values)
 
 
-@pytest.fixture(params=["perfect true positives", "perfect false positives", "perfectly correct"])
-def result_setup(request):
+TEST_SETUP = {
+    "perfect true positives": (make_mask("1111"), make_mask("1111"),
+                               ClassScore1st(TPR=as_a(1.0), TNR=as_a(0.0), PPV=as_a(1.0))),
+    "perfect false positives": (make_mask("0000"), make_mask("0000"),
+                                ClassScore1st(TPR=as_a(1.0), TNR=as_a(0.0), PPV=as_a(1.0))),
+    "perfectly correct": (make_mask("0011"), make_mask("0011"),
+                          ClassScore1st(TPR=as_a(1.0), TNR=as_a(1.0), PPV=as_a(1.0))),
+    "perfectly incorrect": (make_mask("0011"), make_mask("1100"),
+                            ClassScore1st(TPR=as_a(0.0), TNR=as_a(0.0), PPV=as_a(0.0))),
+}
+
+
+@pytest.fixture(params=TEST_SETUP.keys())
+def active_setup(request):
     return request.param
 
 
 @pytest.fixture
-def cm(result_setup):
-    if result_setup == "perfect true positives":
-        return confusion_matrix(make_mask("1111"), make_mask("1111"))
-    if result_setup == "perfect false positives":
-        return confusion_matrix(make_mask("1111"), make_mask("1111"))
-    if result_setup == "perfectly correct":
-        return confusion_matrix(make_mask("0011"), make_mask("0011"))
+def cm(active_setup):
+    setup = TEST_SETUP[active_setup]
+    return confusion_matrix(setup[0], setup[1])
 
 
 @pytest.fixture
-def expected_score(result_setup):
-    if result_setup == "perfect true positives":
-        return ClassScore1st(TPR=as_a(1.0), TNR=as_a(0.0), PPV=as_a(1.0))
-    if result_setup == "perfect false positives":
-        return ClassScore1st(TPR=as_a(1.0), TNR=as_a(0.0), PPV=as_a(1.0))
-    if result_setup == "perfectly correct":
-        return ClassScore1st(TPR=as_a(1.0, 1.0), TNR=as_a(1.0, 1.0), PPV=as_a(1.0, 1.0))
+def expected_score(active_setup):
+    return TEST_SETUP[active_setup][2]
 
 
 def test_calculating_first_order_scores(cm, expected_score):
