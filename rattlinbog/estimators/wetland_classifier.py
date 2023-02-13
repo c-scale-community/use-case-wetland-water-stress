@@ -1,15 +1,15 @@
 from dataclasses import asdict
-from typing import Callable, Any, Optional
+from typing import Optional
 
 import numpy as np
 from numpy.typing import NDArray
 from sklearn.base import ClassifierMixin
 from sklearn.metrics import confusion_matrix
 from torch.nn import Module, BCEWithLogitsLoss
-from torch.optim import Optimizer, Adam
+from torch.optim import Adam
 
 from rattlinbog.estimators.base import EstimateDescription, LogConfig, Score
-from rattlinbog.estimators.nn_estimator import NNEstimator, ModelParams
+from rattlinbog.estimators.nn_estimator import NNEstimator
 from rattlinbog.scoring.classification import score_first_order, score_second_order, score_zero_order
 
 
