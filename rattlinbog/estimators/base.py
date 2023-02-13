@@ -52,7 +52,7 @@ class Validation:
 
 
 @dataclass
-class ValidationConfig:
+class ValidationLogging:
     frequency: int
     validator: Callable[[Estimator], Validation]
     log_sink: LogSink
@@ -61,4 +61,4 @@ class ValidationConfig:
 @dataclass
 class LogConfig:
     log_sink: LogSink
-    validation: Optional[ValidationConfig] = None
+    validation: Optional[ValidationLogging] = None

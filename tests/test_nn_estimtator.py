@@ -15,7 +15,7 @@ from torch.utils.data import IterableDataset
 
 from factories import make_raster
 from rattlinbog.estimators.apply import apply
-from rattlinbog.estimators.base import Estimator, LogSink, ValidationConfig, LogConfig, Validation, EstimateDescription, \
+from rattlinbog.estimators.base import Estimator, LogSink, ValidationLogging, LogConfig, Validation, EstimateDescription, \
     Score
 from rattlinbog.estimators.nn_estimator import NNEstimator
 from rattlinbog.estimators.wetland_classifier import WetlandClassifier
@@ -191,14 +191,14 @@ def test_write_train_statistics_to_logging_facilities_if_provided(nn_estimator_l
 
 
 def test_write_validation_score_statistics_to_logging_facilities_at_specified_frequency_if_provided(
-        nn_estimator_params, nn_estimator_logging, generated_dataset, fixed_seed):
+        nn_estimator_params, nn_estimator_logging, generated_dataset):
     def validation_fn(model: Estimator) -> Validation:
         assert model is not None
         return Validation(loss=0.42, score={'VAL_SCORE': 0.21})
 
     train_sink = make_log_sink()
     valid_sink = make_log_sink()
-    nn_estimator_logging.set_params(log_cfg=LogConfig(train_sink, ValidationConfig(2, validation_fn, valid_sink)))
+    nn_estimator_logging.set_params(log_cfg=LogConfig(train_sink, ValidationLogging(2, validation_fn, valid_sink)))
 
     nn_estimator_logging.fit(generated_dataset(10 * nn_estimator_params['batch_size']))
 
@@ -212,6 +212,12 @@ def assert_received_log_at_correct_frequency(train_sink, valid_sink, n_training_
     assert valid_sink.received_scalar_steps['loss'] == list(range(0, n_training_steps, valid_freq))
     assert valid_sink.received_scalars_steps['score'] == list(range(0, n_training_steps, valid_freq))
     assert valid_sink.received_scalars_names['score'] == {'VAL_SCORE'}
+
+
+def test_log_image_at_specified_frequency(nn_estimator_params, nn_estimator_logging, generated_dataset, log_sink):
+    # nn_estimator_logging.set_params(log_cfg=LogConfig(log_sink, ImageConfig(2, image_fn, log_sink)))
+    ...
+
 
 
 def test_wetland_classification_estimator_protocol(wl_estimator, one_input, one_output):
