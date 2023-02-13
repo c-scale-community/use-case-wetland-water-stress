@@ -62,5 +62,4 @@ def test_estimator_is_called_once_per_chunk(estimate_always_true):
 def test_estimate_multiple_classes(estimate_multiple_classes):
     estimated = apply(estimate_multiple_classes).to(make_raster(np.zeros((2, 4, 4))).chunk(2)).compute()
     out_dims, = tuple(estimate_multiple_classes.out_description.dims.items())
-    assert_arrays_identical(estimated.load(), make_raster(np.full((4, 4, 4), 0.25),
-                                                          param_dim=out_dims))
+    assert_arrays_identical(estimated.load(), make_raster(np.full((4, 4, 4), 0.25), param_dim=out_dims))
