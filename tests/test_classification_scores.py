@@ -63,7 +63,9 @@ TEST_SETUP = {
     "perfectly incorrect": (make_mask("0011"), make_mask("1100"),
                             ClassScore1st(TPR=as_a(0.0, 0.0), TNR=as_a(0.0, 0.0), PPV=as_a(0.0, 0.0))),
     "mostly correct": (make_mask("0011"), make_mask("0111"),
-                       ClassScore1st(TPR=as_a(0.5, 1.0), TNR=as_a(1.0, 0.5), PPV=as_a(1.0, 2/3))),
+                       ClassScore1st(TPR=as_a(0.5, 1.0), TNR=as_a(1.0, 0.5), PPV=as_a(1.0, 2 / 3))),
+    "mostly incorrect": (make_mask("1111"), make_mask("0001"),
+                         ClassScore1st(TPR=as_a(0.75, 0.25), TNR=as_a(0.25, 0.75), PPV=as_a(0.0, 1.0))),
 }
 
 
