@@ -52,10 +52,10 @@ class NNEstimator(Estimator, ABC):
     def _log_progress(self, x_batch, loss, step):
         self.log_cfg.log_sink.add_scalar("loss", loss.item(), step)
         if self._should_validate(step):
-            self.log_cfg.log_sink.add_scalar("score", self.score(x_batch), step)
+            self.log_cfg.log_sink.add_scalars("score", self.score(x_batch), step)
             validation = self.log_cfg.validation.validator(self)
             self.log_cfg.validation.log_sink.add_scalar("loss", validation.loss, step)
-            self.log_cfg.validation.log_sink.add_scalar("score", validation.score, step)
+            self.log_cfg.validation.log_sink.add_scalars("score", validation.score, step)
 
     def _should_validate(self, step):
         return self.log_cfg.validation and step % self.log_cfg.validation.frequency == 0

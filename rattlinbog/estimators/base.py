@@ -7,6 +7,7 @@ from sklearn.base import BaseEstimator
 
 Coords = Sequence
 DimsWithCoords = Dict[str, Coords]
+Score = Dict[str, float]
 
 
 @dataclass
@@ -23,7 +24,7 @@ class Estimator(BaseEstimator):
         ...
 
     @abstractmethod
-    def score(self, X) -> float:
+    def score(self, X) -> Score:
         ...
 
     @property
@@ -37,11 +38,15 @@ class LogSink(Protocol):
     def add_scalar(self, tag, scalar_value, global_step=None):
         ...
 
+    @abstractmethod
+    def add_scalars(self, main_tag, tag_scalar_dict, global_step=None):
+        ...
+
 
 @dataclass
 class Validation:
     loss: float
-    score: float
+    score: Score
 
 
 @dataclass

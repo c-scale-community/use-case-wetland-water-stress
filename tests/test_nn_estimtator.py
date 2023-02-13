@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Iterator, Tuple
+from typing import Iterator, Tuple, Dict
 
 import numpy as np
 import pytest
@@ -15,7 +15,8 @@ from torch.utils.data import IterableDataset
 
 from factories import make_raster
 from rattlinbog.estimators.apply import apply
-from rattlinbog.estimators.base import Estimator, LogSink, ValidationConfig, LogConfig, Validation
+from rattlinbog.estimators.base import Estimator, LogSink, ValidationConfig, LogConfig, Validation, EstimateDescription, \
+    Score
 from rattlinbog.estimators.nn_estimator import NNEstimator
 from rattlinbog.estimators.wetland_classifier import WetlandClassifier
 from rattlinbog.th_extensions.nn.unet import UNet
@@ -31,15 +32,30 @@ def nn_estimator_params(unet):
     return dict(net=unet, batch_size=16, optim_factory=lambda p: Adam(p, lr=1e-2), loss_fn=MSELoss(), log_cfg=None)
 
 
+class NNEstimatorStub(NNEstimator):
+    def score(self, X) -> Score:
+        return {'SCORE_A': 0.42, 'SCORE_B': 42}
+
+    @property
+    def out_description(self) -> EstimateDescription:
+        return EstimateDescription({'class_prob': ['is_class']})
+
+
 @pytest.fixture
 def nn_estimator(nn_estimator_params):
-    return NNEstimator(**nn_estimator_params)
+    return NNEstimatorStub(**nn_estimator_params)
 
 
 @pytest.fixture
 def nn_estimator_gpu(unet, nn_estimator_params):
     nn_estimator_params['net'] = nn_estimator_params['net'].to(device=th.device('cuda'))
-    return NNEstimator(**nn_estimator_params)
+    return NNEstimatorStub(**nn_estimator_params)
+
+
+@pytest.fixture
+def nn_estimator_logging(nn_estimator_params, log_sink):
+    nn_estimator_params['log_cfg'] = LogConfig(log_sink)
+    return NNEstimatorStub(**nn_estimator_params)
 
 
 @pytest.fixture
@@ -94,10 +110,16 @@ def log_sink():
 def make_log_sink():
     class _LogSpy(LogSink):
         def __init__(self):
-            self.received_steps = defaultdict(list)
+            self.received_scalar_steps = defaultdict(list)
+            self.received_scalars_steps = defaultdict(list)
+            self.received_scalars_names = dict()
 
         def add_scalar(self, tag, scalar_value, global_step=None):
-            self.received_steps[tag].append(global_step)
+            self.received_scalar_steps[tag].append(global_step)
+
+        def add_scalars(self, main_tag, tag_scalar_dict, global_step=None):
+            self.received_scalars_steps[main_tag].append(global_step)
+            self.received_scalars_names[main_tag] = set(tag_scalar_dict.keys())
 
     return _LogSpy()
 
@@ -162,35 +184,34 @@ def test_nn_estimator_automagically_moves_input_data_to_device_of_nn(nn_estimato
     assert_prediction_eq(nn_estimator_gpu.predict(zero_input), one_output)
 
 
-def test_write_train_statistics_to_logging_facilities_if_provided(nn_estimator_params, generated_dataset, log_sink,
-                                                                  fixed_seed):
-    nn_estimator_params['log_cfg'] = LogConfig(log_sink)
-    estimator = NNEstimator(**nn_estimator_params)
-    estimator.fit(generated_dataset(10 * nn_estimator_params['batch_size']))
-    assert log_sink.received_steps['loss'] == list(range(10))
+def test_write_train_statistics_to_logging_facilities_if_provided(nn_estimator_logging, nn_estimator_params,
+                                                                  generated_dataset, log_sink):
+    nn_estimator_logging.fit(generated_dataset(10 * nn_estimator_params['batch_size']))
+    assert log_sink.received_scalar_steps['loss'] == list(range(10))
 
 
 def test_write_validation_score_statistics_to_logging_facilities_at_specified_frequency_if_provided(
-        nn_estimator_params, generated_dataset, fixed_seed):
+        nn_estimator_params, nn_estimator_logging, generated_dataset, fixed_seed):
     def validation_fn(model: Estimator) -> Validation:
         assert model is not None
-        return Validation(loss=0.42, score=0.21)
+        return Validation(loss=0.42, score={'VAL_SCORE': 0.21})
 
     train_sink = make_log_sink()
     valid_sink = make_log_sink()
-    nn_estimator_params['log_cfg'] = LogConfig(train_sink, ValidationConfig(2, validation_fn, valid_sink))
-    estimator = NNEstimator(**nn_estimator_params)
+    nn_estimator_logging.set_params(log_cfg=LogConfig(train_sink, ValidationConfig(2, validation_fn, valid_sink)))
 
-    estimator.fit(generated_dataset(10 * nn_estimator_params['batch_size']))
+    nn_estimator_logging.fit(generated_dataset(10 * nn_estimator_params['batch_size']))
 
     assert_received_log_steps_at_correct_frequency(train_sink, valid_sink, n_training_steps=10, valid_freq=2)
 
 
 def assert_received_log_steps_at_correct_frequency(train_sink, valid_sink, n_training_steps, valid_freq):
-    assert train_sink.received_steps['loss'] == list(range(n_training_steps))
-    assert train_sink.received_steps['score'] == list(range(0, n_training_steps, valid_freq))
-    assert valid_sink.received_steps['loss'] == list(range(0, n_training_steps, valid_freq))
-    assert valid_sink.received_steps['score'] == list(range(0, n_training_steps, valid_freq))
+    assert train_sink.received_scalar_steps['loss'] == list(range(n_training_steps))
+    assert train_sink.received_scalars_steps['score'] == list(range(0, n_training_steps, valid_freq))
+    assert train_sink.received_scalars_names['score'] == {'SCORE_A', 'SCORE_B'}
+    assert valid_sink.received_scalar_steps['loss'] == list(range(0, n_training_steps, valid_freq))
+    assert valid_sink.received_scalars_steps['score'] == list(range(0, n_training_steps, valid_freq))
+    assert valid_sink.received_scalars_names['score'] == {'VAL_SCORE'}
 
 
 def test_wetland_classification_estimator_protocol(wl_estimator, one_input):
