@@ -1,18 +1,27 @@
 from abc import abstractmethod
-from typing import Sequence
+from dataclasses import dataclass
+from typing import Sequence, Dict
 
-from sklearn.base import ClassifierMixin
+from sklearn.base import BaseEstimator
+
+Coords = Sequence
+DimsWithCoords = Dict[str, Coords]
+
+
+@dataclass
+class EstimateDescription:
+    dims: DimsWithCoords
 
 
 # turn of inspections that collide with scikit-learn API requirements & style guide, see:
 # https://scikit-learn.org/stable/developers/develop.html
 # noinspection PyPep8Naming,PyAttributeOutsideInit
-class ClassEstimatorMixin(ClassifierMixin):
+class Estimator(BaseEstimator):
     @abstractmethod
     def predict(self, X):
         ...
 
     @property
     @abstractmethod
-    def classes(self) -> Sequence[str]:
+    def out_description(self) -> EstimateDescription:
         ...

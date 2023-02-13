@@ -1,15 +1,16 @@
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 from dataclasses import dataclass
 from typing import Union, Iterator, Dict, Any, Callable, Iterable, Optional
 
 import torch as th
 from numpy.typing import NDArray
-from sklearn.base import BaseEstimator
 from torch.nn import Parameter, Module
 from torch.optim import Optimizer
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 from typing_extensions import Protocol
+
+from rattlinbog.estimators.base import Estimator
 
 ModelParams = Union[Iterator[Parameter], Dict[Any, Parameter]]
 
@@ -35,7 +36,7 @@ class LogConfig:
 # turn of inspections that collide with scikit-learn API requirements & style guide, see:
 # https://scikit-learn.org/stable/developers/develop.html
 # noinspection PyPep8Naming,PyAttributeOutsideInit
-class NNEstimator(BaseEstimator):
+class NNEstimator(Estimator, ABC):
     def __init__(self, net: Module, batch_size: int,
                  optim_factory: Callable[[ModelParams], Optimizer],
                  loss_fn: Callable[[Any, Any], Any], log_cfg: Optional[LogConfig] = None):

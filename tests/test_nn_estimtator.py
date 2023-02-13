@@ -14,7 +14,7 @@ from torch.optim.adam import Adam
 from torch.utils.data import IterableDataset
 
 from factories import make_raster
-from rattlinbog.estimators.apply import apply_classification
+from rattlinbog.estimators.apply import apply
 from rattlinbog.estimators.nn_estimator import NNEstimator, LogSink, LogConfig
 from rattlinbog.estimators.wetland_classifier import WetlandClassifier
 from rattlinbog.th_extensions.nn.unet import UNet
@@ -166,5 +166,5 @@ def test_write_train_statistics_to_logging_facilities_if_provided(nn_estimator_p
 
 
 def test_wetland_classification_estimator_protocol(wl_estimator, one_input):
-    assert wl_estimator.classes == ['is_wetland']
-    assert apply_classification(wl_estimator).to(make_raster(one_input).chunk()).shape == (1, *one_input.shape[1:])
+    assert wl_estimator.out_description.dims == {'class_probs': ['is_wetland']}
+    assert apply(wl_estimator).to(make_raster(one_input).chunk()).load().shape == (1, *one_input.shape[1:])
