@@ -202,10 +202,10 @@ def test_write_validation_score_statistics_to_logging_facilities_at_specified_fr
 
     nn_estimator_logging.fit(generated_dataset(10 * nn_estimator_params['batch_size']))
 
-    assert_received_log_steps_at_correct_frequency(train_sink, valid_sink, n_training_steps=10, valid_freq=2)
+    assert_received_log_at_correct_frequency(train_sink, valid_sink, n_training_steps=10, valid_freq=2)
 
 
-def assert_received_log_steps_at_correct_frequency(train_sink, valid_sink, n_training_steps, valid_freq):
+def assert_received_log_at_correct_frequency(train_sink, valid_sink, n_training_steps, valid_freq):
     assert train_sink.received_scalar_steps['loss'] == list(range(n_training_steps))
     assert train_sink.received_scalars_steps['score'] == list(range(0, n_training_steps, valid_freq))
     assert train_sink.received_scalars_names['score'] == {'SCORE_A', 'SCORE_B'}
