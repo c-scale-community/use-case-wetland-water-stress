@@ -13,9 +13,9 @@ class ClassScore1st:
     PPV: NDArray
 
     def __eq__(self, other: "ClassScore1st") -> bool:
-        return np.all(self.TPR == other.TPR) \
-            and np.all(self.TNR == other.TNR) \
-            and np.all(self.PPV == other.PPV)
+        return np.array_equal(self.TPR, other.TPR) \
+            and np.array_equal(self.TNR, other.TNR) \
+            and np.array_equal(self.PPV, other.PPV)
 
 
 def score_confusion_matrix_first_order(confusion_matrix: NDArray) -> ClassScore1st:
@@ -29,13 +29,13 @@ def score_confusion_matrix_first_order(confusion_matrix: NDArray) -> ClassScore1
 
     has_p = p > 0
     has_not_p = ~has_p
-    tpr = np.empty_like(tp)
+    tpr = np.empty_like(tp, dtype=np.float32)
     tpr[has_p] = tp[has_p] / p[has_p]
     tpr[has_not_p] = 1.0 - tn[has_not_p] / n[has_not_p]
 
     has_n = n > 0
     has_not_n = ~has_n
-    tnr = np.empty_like(tp)
+    tnr = np.empty_like(tp, dtype=np.float32)
     tnr[has_n] = tn[has_n] / n[has_n]
     tnr[has_not_n] = 1 - tp[has_not_n] / p[has_not_n]
 
@@ -59,9 +59,11 @@ TEST_SETUP = {
     "perfect false positives": (make_mask("0000"), make_mask("0000"),
                                 ClassScore1st(TPR=as_a(1.0), TNR=as_a(0.0), PPV=as_a(1.0))),
     "perfectly correct": (make_mask("0011"), make_mask("0011"),
-                          ClassScore1st(TPR=as_a(1.0), TNR=as_a(1.0), PPV=as_a(1.0))),
+                          ClassScore1st(TPR=as_a(1.0, 1.0), TNR=as_a(1.0, 1.0), PPV=as_a(1.0, 1.0))),
     "perfectly incorrect": (make_mask("0011"), make_mask("1100"),
-                            ClassScore1st(TPR=as_a(0.0), TNR=as_a(0.0), PPV=as_a(0.0))),
+                            ClassScore1st(TPR=as_a(0.0, 0.0), TNR=as_a(0.0, 0.0), PPV=as_a(0.0, 0.0))),
+    "mostly correct": (make_mask("0011"), make_mask("0111"),
+                       ClassScore1st(TPR=as_a(0.5, 1.0), TNR=as_a(1.0, 0.5), PPV=as_a(1.0, 2/3))),
 }
 
 
