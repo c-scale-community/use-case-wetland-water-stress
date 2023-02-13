@@ -55,11 +55,11 @@ class NNEstimator(Estimator, ABC):
 
         estimated_len = getattr(X, 'estimated_len', None)
         total = estimated_len // self.batch_size if estimated_len else None
-        for x_batch, y_batch in tqdm(dataloader, "fitting", total):
+        for step, (x_batch, y_batch) in tqdm(enumerate(dataloader), "fitting", total):
             estimate = self.net(x_batch.to(device=model_device))
             loss = self.loss_fn(estimate, y_batch.to(device=model_device))
             if self.log_cfg:
-                self.log_cfg.log_sink.add_scalar("loss", loss.item())
+                self.log_cfg.log_sink.add_scalar("loss", loss.item(), step)
 
             optimizer.zero_grad()
             loss.backward()

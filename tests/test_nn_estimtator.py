@@ -42,8 +42,8 @@ def nn_estimator_gpu(unet, nn_estimator_params):
 
 
 @pytest.fixture
-def wl_estimator(nn_estimator_params):
-    return WetlandClassifier(**nn_estimator_params)
+def wl_estimator(unet):
+    return WetlandClassifier(unet, 16)
 
 
 @pytest.fixture
@@ -89,10 +89,10 @@ def generated_dataset(one_input, zero_input, one_output, zero_output):
 def log_sink():
     class _LogSpy(LogSink):
         def __init__(self):
-            self.num_received = defaultdict(lambda: 0)
+            self.received_steps = defaultdict(list)
 
         def add_scalar(self, tag, scalar_value, global_step=None):
-            self.num_received[tag] += 1
+            self.received_steps[tag].append(global_step)
 
     return _LogSpy()
 
@@ -162,7 +162,7 @@ def test_write_train_statistics_to_logging_facilities_if_provided(nn_estimator_p
     nn_estimator_params['log_cfg'] = LogConfig(log_sink)
     estimator = NNEstimator(**nn_estimator_params)
     estimator.fit(generated_dataset(10 * nn_estimator_params['batch_size']))
-    assert log_sink.num_received['loss'] == 10
+    assert log_sink.received_steps['loss'] == list(range(10))
 
 
 def test_wetland_classification_estimator_protocol(wl_estimator, one_input):
