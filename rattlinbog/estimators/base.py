@@ -1,6 +1,7 @@
 from abc import abstractmethod
 from dataclasses import dataclass
-from typing import Sequence, Dict
+from typing import Sequence, Dict, Callable, Optional
+from typing_extensions import Protocol
 
 from sklearn.base import BaseEstimator
 
@@ -21,7 +22,36 @@ class Estimator(BaseEstimator):
     def predict(self, X):
         ...
 
+    @abstractmethod
+    def score(self, X) -> float:
+        ...
+
     @property
     @abstractmethod
     def out_description(self) -> EstimateDescription:
         ...
+
+
+class LogSink(Protocol):
+    @abstractmethod
+    def add_scalar(self, tag, scalar_value, global_step=None):
+        ...
+
+
+@dataclass
+class Validation:
+    loss: float
+    score: float
+
+
+@dataclass
+class ValidationConfig:
+    frequency: int
+    validator: Callable[[Estimator], Validation]
+    log_sink: LogSink
+
+
+@dataclass
+class LogConfig:
+    log_sink: LogSink
+    validation: Optional[ValidationConfig] = None

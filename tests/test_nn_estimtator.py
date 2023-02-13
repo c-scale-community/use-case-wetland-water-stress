@@ -15,7 +15,8 @@ from torch.utils.data import IterableDataset
 
 from factories import make_raster
 from rattlinbog.estimators.apply import apply
-from rattlinbog.estimators.nn_estimator import NNEstimator, LogSink, LogConfig
+from rattlinbog.estimators.base import Estimator, LogSink, ValidationConfig, LogConfig, Validation
+from rattlinbog.estimators.nn_estimator import NNEstimator
 from rattlinbog.estimators.wetland_classifier import WetlandClassifier
 from rattlinbog.th_extensions.nn.unet import UNet
 
@@ -87,6 +88,10 @@ def generated_dataset(one_input, zero_input, one_output, zero_output):
 
 @pytest.fixture
 def log_sink():
+    return make_log_sink()
+
+
+def make_log_sink():
     class _LogSpy(LogSink):
         def __init__(self):
             self.received_steps = defaultdict(list)
@@ -163,6 +168,29 @@ def test_write_train_statistics_to_logging_facilities_if_provided(nn_estimator_p
     estimator = NNEstimator(**nn_estimator_params)
     estimator.fit(generated_dataset(10 * nn_estimator_params['batch_size']))
     assert log_sink.received_steps['loss'] == list(range(10))
+
+
+def test_write_validation_score_statistics_to_logging_facilities_at_specified_frequency_if_provided(
+        nn_estimator_params, generated_dataset, fixed_seed):
+    def validation_fn(model: Estimator) -> Validation:
+        assert model is not None
+        return Validation(loss=0.42, score=0.21)
+
+    train_sink = make_log_sink()
+    valid_sink = make_log_sink()
+    nn_estimator_params['log_cfg'] = LogConfig(train_sink, ValidationConfig(2, validation_fn, valid_sink))
+    estimator = NNEstimator(**nn_estimator_params)
+
+    estimator.fit(generated_dataset(10 * nn_estimator_params['batch_size']))
+
+    assert_received_log_steps_at_correct_frequency(train_sink, valid_sink, n_training_steps=10, valid_freq=2)
+
+
+def assert_received_log_steps_at_correct_frequency(train_sink, valid_sink, n_training_steps, valid_freq):
+    assert train_sink.received_steps['loss'] == list(range(n_training_steps))
+    assert train_sink.received_steps['score'] == list(range(0, n_training_steps, valid_freq))
+    assert valid_sink.received_steps['loss'] == list(range(0, n_training_steps, valid_freq))
+    assert valid_sink.received_steps['score'] == list(range(0, n_training_steps, valid_freq))
 
 
 def test_wetland_classification_estimator_protocol(wl_estimator, one_input):

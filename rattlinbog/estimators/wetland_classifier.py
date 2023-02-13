@@ -6,8 +6,8 @@ from sklearn.base import ClassifierMixin
 from torch.nn import Module, BCEWithLogitsLoss
 from torch.optim import Optimizer, Adam
 
-from rattlinbog.estimators.base import EstimateDescription
-from rattlinbog.estimators.nn_estimator import NNEstimator, ModelParams, LogConfig
+from rattlinbog.estimators.base import EstimateDescription, LogConfig
+from rattlinbog.estimators.nn_estimator import NNEstimator, ModelParams
 
 
 def sigmoid(x: NDArray) -> NDArray:

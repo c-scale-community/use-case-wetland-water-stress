@@ -1,5 +1,4 @@
-from abc import abstractmethod, ABC
-from dataclasses import dataclass
+from abc import ABC
 from typing import Union, Iterator, Dict, Any, Callable, Iterable, Optional
 
 import torch as th
@@ -8,29 +7,10 @@ from torch.nn import Parameter, Module
 from torch.optim import Optimizer
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
-from typing_extensions import Protocol
 
-from rattlinbog.estimators.base import Estimator
+from rattlinbog.estimators.base import Estimator, LogConfig
 
 ModelParams = Union[Iterator[Parameter], Dict[Any, Parameter]]
-
-
-class LogSink(Protocol):
-    @abstractmethod
-    def add_scalar(self, tag, scalar_value, global_step=None):
-        ...
-
-
-@dataclass
-class Validation:
-    frequency: int
-    validator: Callable[["NNEstimator"], float]
-
-
-@dataclass
-class LogConfig:
-    log_sink: LogSink
-    validation: Optional[Validation] = None
 
 
 # turn of inspections that collide with scikit-learn API requirements & style guide, see:
@@ -58,8 +38,9 @@ class NNEstimator(Estimator, ABC):
         for step, (x_batch, y_batch) in tqdm(enumerate(dataloader), "fitting", total):
             estimate = self.net(x_batch.to(device=model_device))
             loss = self.loss_fn(estimate, y_batch.to(device=model_device))
+
             if self.log_cfg:
-                self.log_cfg.log_sink.add_scalar("loss", loss.item(), step)
+                self._log_progress(x_batch, loss, step)
 
             optimizer.zero_grad()
             loss.backward()
@@ -67,6 +48,17 @@ class NNEstimator(Estimator, ABC):
 
         self.is_fitted_ = True
         return self
+
+    def _log_progress(self, x_batch, loss, step):
+        self.log_cfg.log_sink.add_scalar("loss", loss.item(), step)
+        if self._should_validate(step):
+            self.log_cfg.log_sink.add_scalar("score", self.score(x_batch), step)
+            validation = self.log_cfg.validation.validator(self)
+            self.log_cfg.validation.log_sink.add_scalar("loss", validation.loss, step)
+            self.log_cfg.validation.log_sink.add_scalar("score", validation.score, step)
+
+    def _should_validate(self, step):
+        return self.log_cfg.validation and step % self.log_cfg.validation.frequency == 0
 
     def predict(self, X: NDArray) -> NDArray:
         model_device = next(self.net.parameters()).device
@@ -76,4 +68,3 @@ class NNEstimator(Estimator, ABC):
 
     def _more_tags(self):
         return {'X_types': [Iterable[NDArray]], 'y_types': [Iterable[NDArray]]}
-
