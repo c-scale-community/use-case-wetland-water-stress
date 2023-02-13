@@ -59,20 +59,21 @@ def score_first_order(zero_order: ClassScore0th) -> ClassScore1st:
     return ClassScore1st(tpr, tnr, ppv)
 
 
-# @dataclass
-# class ClassScore2nd:
-#     F1: NDArray
-#     BA: NDArray
-#     MCC: NDArray
-#
-#     def __eq__(self, other: "ClassScore2nd") -> bool:
-#         return np.array_equal(self.F1, other.F1) \
-#             and np.array_equal(self.BA, other.BA) \
-#             and np.array_equal(self.MCC, other.MCC)
-#
-#
-# def score_confusion_matrix_second_order(confusion_matrix: NDArray, first_order: ClassScore1st) -> ClassScore2nd:
-#     f1 = 2.0 * (first_order.PPV * first_order.TPR) / (first_order.PPV + first_order.TPR)
-#     ba = (first_order.TPR + first_order.TNR) / 2.0
-#     mcc = (())
-#     return ClassScore2nd()
+@dataclass
+class ClassScore2nd:
+    F1: NDArray
+    BA: NDArray
+
+    def __eq__(self, other: "ClassScore2nd") -> bool:
+        return np.array_equal(self.F1, other.F1) \
+            and np.array_equal(self.BA, other.BA)
+
+
+def score_second_order(first_order: ClassScore1st) -> ClassScore2nd:
+    f1 = np.empty_like(first_order.TPR)
+    precision_and_rate = first_order.PPV + first_order.TPR
+    is_valid = precision_and_rate > 0
+    f1[is_valid] = 2.0 * (first_order.PPV[is_valid] * first_order.TPR[is_valid]) / precision_and_rate[is_valid]
+    f1[~is_valid] = 0.0
+    ba = (first_order.TPR + first_order.TNR) / 2.0
+    return ClassScore2nd(f1, ba)
