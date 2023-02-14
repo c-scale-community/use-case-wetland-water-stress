@@ -54,12 +54,12 @@ class MultiClassEstimator(Estimator):
 
 
 class NNEstimatorStub(NNEstimator):
-    def score(self, X: NDArray, y: NDArray) -> Score:
+    def score_estimate(self, estimate: NDArray, ground_truth: NDArray) -> Score:
         return {'SCORE_A': 0.42, 'SCORE_B': 42}
 
     @property
     def out_description(self) -> EstimateDescription:
-        return EstimateDescription({'class_prob': ['is_class']})
+        return EstimateDescription({'class_prob': ['is_class']}, 0)
 
 
 class LogSpy(LogSink):

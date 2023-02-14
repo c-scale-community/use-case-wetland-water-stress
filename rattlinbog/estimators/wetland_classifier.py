@@ -26,9 +26,9 @@ class WetlandClassifier(NNEstimator, ClassifierMixin):
     def predict(self, X: NDArray) -> NDArray:
         return sigmoid(super().predict(X))
 
-    def score(self, X: NDArray, y: NDArray) -> Score:
-        estimates = (self.predict(X) > 0.5).ravel()
-        cm = confusion_matrix(y.ravel(), estimates)
+    def score_estimate(self, estimates: NDArray, ground_truth: NDArray) -> Score:
+        estimates = (estimates > 0.5).ravel()
+        cm = confusion_matrix(ground_truth.ravel(), estimates)
         zro = score_zero_order(cm)
         fst = score_first_order(zro)
         snd = score_second_order(fst)

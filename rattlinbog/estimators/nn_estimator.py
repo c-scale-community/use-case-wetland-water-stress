@@ -1,4 +1,4 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import Union, Iterator, Dict, Any, Callable, Iterable, Optional
 
 import torch as th
@@ -8,7 +8,7 @@ from torch.optim import Optimizer
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 
-from rattlinbog.estimators.base import Estimator, LogConfig
+from rattlinbog.estimators.base import Estimator, LogConfig, Score
 
 ModelParams = Union[Iterator[Parameter], Dict[Any, Parameter]]
 
@@ -52,7 +52,7 @@ class NNEstimator(Estimator, ABC):
     def _log_progress(self, x_batch, y_batch, loss, step):
         self.log_cfg.log_sink.add_scalar("loss", loss.item(), step)
         if self._should_log(self.log_cfg.validation, step):
-            self.log_cfg.log_sink.add_scalars("score", self.score(x_batch, y_batch), step)
+            self.log_cfg.log_sink.add_scalars("score", self.score(x_batch.numpy(), y_batch.numpy()), step)
             validation = self.log_cfg.validation.validator(self)
             self.log_cfg.validation.log_sink.add_scalar("loss", validation.loss, step)
             self.log_cfg.validation.log_sink.add_scalars("score", validation.score, step)
@@ -68,7 +68,20 @@ class NNEstimator(Estimator, ABC):
         model_device = next(self.net.parameters()).device
         with th.no_grad():
             self.net.eval()
-            return self.net(th.from_numpy(X).unsqueeze(0).to(device=model_device)).squeeze(0).cpu().numpy()
+            x = th.from_numpy(X)
+            if x.ndim == 3:
+                x = x.unsqueeze(0)
+            estimate = self.net(x.to(device=model_device))
+            if estimate.shape[0] == 1:
+                estimate = estimate.squeeze(0)
+            return estimate.cpu().numpy()
+
+    def score(self, X: NDArray, y: NDArray) -> Score:
+        return self.score_estimate(self.predict(X), y)
+
+    @abstractmethod
+    def score_estimate(self, estimate: NDArray, ground_truth: NDArray) -> Score:
+        ...
 
     def _more_tags(self):
         return {'X_types': [Iterable[NDArray]], 'y_types': [Iterable[NDArray]]}
