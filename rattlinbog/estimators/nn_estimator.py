@@ -1,4 +1,4 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 from typing import Union, Iterator, Dict, Any, Callable, Iterable, Optional
 
 import torch as th
@@ -8,7 +8,7 @@ from torch.optim import Optimizer
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 
-from rattlinbog.estimators.base import Estimator, LogConfig, Score
+from rattlinbog.estimators.base import LogConfig, ScoreableEstimator, Score
 
 ModelParams = Union[Iterator[Parameter], Dict[Any, Parameter]]
 
@@ -16,7 +16,7 @@ ModelParams = Union[Iterator[Parameter], Dict[Any, Parameter]]
 # turn of inspections that collide with scikit-learn API requirements & style guide, see:
 # https://scikit-learn.org/stable/developers/develop.html
 # noinspection PyPep8Naming,PyAttributeOutsideInit
-class NNEstimator(Estimator, ABC):
+class NNEstimator(ScoreableEstimator, ABC):
     def __init__(self, net: Module, batch_size: int,
                  optim_factory: Callable[[ModelParams], Optimizer],
                  loss_fn: Callable[[Any, Any], Any], log_cfg: Optional[LogConfig] = None):
@@ -75,6 +75,9 @@ class NNEstimator(Estimator, ABC):
             if estimate.shape[0] == 1:
                 estimate = estimate.squeeze(0)
             return estimate.cpu().numpy()
+
+    def score(self, X: NDArray, y: NDArray) -> Score:
+        return self.score_estimate(self.predict(X), y)
 
     def loss_for_estimate(self, estimate: NDArray, ground_truth: NDArray) -> float:
         return self.loss_fn(estimate, ground_truth)

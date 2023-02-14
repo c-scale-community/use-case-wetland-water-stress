@@ -1,4 +1,4 @@
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 from dataclasses import dataclass
 from typing import Sequence, Dict, Callable, Optional
 
@@ -25,21 +25,24 @@ class Estimator(BaseEstimator):
     def predict(self, X: NDArray) -> NDArray:
         ...
 
+    @property
+    @abstractmethod
+    def out_description(self) -> EstimateDescription:
+        ...
+
+
+class Scoreable:
     @abstractmethod
     def loss_for_estimate(self, estimate: NDArray, ground_truth: NDArray) -> float:
         ...
-
-    def score(self, X: NDArray, y: NDArray) -> Score:
-        return self.score_estimate(self.predict(X), y)
 
     @abstractmethod
     def score_estimate(self, estimate: NDArray, ground_truth: NDArray) -> Score:
         ...
 
-    @property
-    @abstractmethod
-    def out_description(self) -> EstimateDescription:
-        ...
+
+class ScoreableEstimator(Estimator, Scoreable, ABC):
+    ...
 
 
 class LogSink(Protocol):

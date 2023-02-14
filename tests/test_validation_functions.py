@@ -5,14 +5,14 @@ from xarray import Dataset
 
 from factories import make_raster
 from rattlinbog.estimators.apply import apply
-from rattlinbog.estimators.base import Estimator, Validation, EstimateDescription, Score
+from rattlinbog.estimators.base import Estimator, Validation, EstimateDescription, Score, Scoreable, ScoreableEstimator
 
 
 class ValidatorOfDataset:
     def __init__(self, validation_ds: Dataset):
         self._validation_ds = validation_ds
 
-    def __call__(self, estimator: Estimator) -> Validation:
+    def __call__(self, estimator: ScoreableEstimator) -> Validation:
         estimate = apply(estimator).to(self._validation_ds['params']).compute()
         ground_truth = self._validation_ds['ground_truth'].load()
         loss = estimator.loss_for_estimate(estimate.values, ground_truth.values)
@@ -26,7 +26,7 @@ def validation_ds():
                     'ground_truth': (make_raster(np.zeros((1, 32, 32)), param_dim=('class', ['yes'])))}).chunk()
 
 
-class EstimatorSpy(Estimator):
+class ScorableEstimatorSpy(ScoreableEstimator):
     def __init__(self):
         self.returned_estimate = np.zeros((1, 32, 32))
         self.returned_loss = 0.042
@@ -50,7 +50,7 @@ class EstimatorSpy(Estimator):
 
 @pytest.fixture
 def estimator():
-    return EstimatorSpy()
+    return ScorableEstimatorSpy()
 
 
 def test_validate_on_given_data_array(validation_ds, estimator):
