@@ -3,7 +3,7 @@ import pytest
 from numpy.typing import NDArray
 from sklearn.metrics import confusion_matrix
 
-from rattlinbog.scoring.classification import ClassScore0th, ClassScore1st, score_zero_order, \
+from rattlinbog.evaluate.classification import ClassScore0th, ClassScore1st, score_zero_order, \
     score_first_order, ClassScore2nd, score_second_order
 
 

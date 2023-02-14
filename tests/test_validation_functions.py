@@ -4,7 +4,7 @@ from xarray import Dataset
 
 from doubles import ScoreableEstimatorSpy
 from factories import make_raster
-from rattlinbog.scoring.validator_of_dataset import ValidatorOfDataset
+from rattlinbog.evaluate.validator_of_dataset import ValidatorOfDataset
 
 
 @pytest.fixture

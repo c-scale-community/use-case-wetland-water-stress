@@ -10,7 +10,7 @@ from torch.optim import Adam
 
 from rattlinbog.estimators.base import EstimateDescription, LogConfig, Score
 from rattlinbog.estimators.nn_estimator import NNEstimator
-from rattlinbog.scoring.classification import score_first_order, score_second_order, score_zero_order
+from rattlinbog.evaluate.classification import score_first_order, score_second_order, score_zero_order
 from rattlinbog.th_extensions.nn.unet import UNet
 
 
