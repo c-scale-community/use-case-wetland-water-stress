@@ -1,23 +1,10 @@
 import numpy as np
 import pytest
-from numpy._typing import NDArray
 from xarray import Dataset
 
+from doubles import ScoreableEstimatorSpy
 from factories import make_raster
-from rattlinbog.estimators.apply import apply
-from rattlinbog.estimators.base import Estimator, Validation, EstimateDescription, Score, Scoreable, ScoreableEstimator
-
-
-class ValidatorOfDataset:
-    def __init__(self, validation_ds: Dataset):
-        self._validation_ds = validation_ds
-
-    def __call__(self, estimator: ScoreableEstimator) -> Validation:
-        estimate = apply(estimator).to(self._validation_ds['params']).compute()
-        ground_truth = self._validation_ds['ground_truth'].load()
-        loss = estimator.loss_for_estimate(estimate.values, ground_truth.values)
-        scores = estimator.score_estimate(estimate.values, ground_truth.values)
-        return Validation(loss, scores)
+from rattlinbog.scoring.validator_of_dataset import ValidatorOfDataset
 
 
 @pytest.fixture
@@ -26,31 +13,9 @@ def validation_ds():
                     'ground_truth': (make_raster(np.zeros((1, 32, 32)), param_dim=('class', ['yes'])))}).chunk()
 
 
-class ScorableEstimatorSpy(ScoreableEstimator):
-    def __init__(self):
-        self.returned_estimate = np.zeros((1, 32, 32))
-        self.returned_loss = 0.042
-        self.returned_score = {'A': 42, 'B': 0.42}
-        self.scorer_received = None
-
-    def predict(self, X: NDArray) -> NDArray:
-        return self.returned_estimate
-
-    def loss_for_estimate(self, estimate: NDArray, ground_truth: NDArray) -> float:
-        return self.returned_loss
-
-    def score_estimate(self, estimate: NDArray, ground_truth: NDArray) -> Score:
-        self.scorer_received = (estimate, ground_truth)
-        return self.returned_score
-
-    @property
-    def out_description(self) -> EstimateDescription:
-        return EstimateDescription({'classes': ['yes']}, 0)
-
-
 @pytest.fixture
 def estimator():
-    return ScorableEstimatorSpy()
+    return ScoreableEstimatorSpy()
 
 
 def test_validate_on_given_data_array(validation_ds, estimator):

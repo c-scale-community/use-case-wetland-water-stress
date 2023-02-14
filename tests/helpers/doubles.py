@@ -5,7 +5,7 @@ import numpy as np
 import torch as th
 from numpy._typing import NDArray
 
-from rattlinbog.estimators.base import Estimator, Score, EstimateDescription, LogSink
+from rattlinbog.estimators.base import Estimator, Score, EstimateDescription, LogSink, ScoreableEstimator
 from rattlinbog.estimators.nn_estimator import NNEstimator
 from rattlinbog.th_extensions.utils.dataset_splitters import split_to_params_and_labels
 
@@ -90,3 +90,25 @@ class DelayingSplit:
     def __call__(self, *args, **kwargs):
         time.sleep(self.loading_time)
         return split_to_params_and_labels(*args, **kwargs)
+
+
+class ScoreableEstimatorSpy(ScoreableEstimator):
+    def __init__(self):
+        self.returned_estimate = np.zeros((1, 32, 32))
+        self.returned_loss = 0.042
+        self.returned_score = {'A': 42, 'B': 0.42}
+        self.scorer_received = None
+
+    def predict(self, X: NDArray) -> NDArray:
+        return self.returned_estimate
+
+    def loss_for_estimate(self, estimate: NDArray, ground_truth: NDArray) -> float:
+        return self.returned_loss
+
+    def score_estimate(self, estimate: NDArray, ground_truth: NDArray) -> Score:
+        self.scorer_received = (estimate, ground_truth)
+        return self.returned_score
+
+    @property
+    def out_description(self) -> EstimateDescription:
+        return EstimateDescription({'classes': ['yes']}, 0)
