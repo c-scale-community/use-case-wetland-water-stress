@@ -1,12 +1,10 @@
 import numpy as np
 import pytest
-from numpy._typing import NDArray
-from xarray import Dataset, DataArray
+from xarray import Dataset
 
 from doubles import ScoreableEstimatorSpy
 from factories import make_raster
-from rattlinbog.estimators.apply import apply
-from rattlinbog.estimators.base import Estimator
+from rattlinbog.evaluate.image_producer_from_data_array import ImageProducerFromDataArray
 from rattlinbog.evaluate.validator_of_dataset import ValidatorOfDataset
 
 
@@ -36,14 +34,6 @@ def test_validate_on_given_dataset(validation_ds, estimator):
 def assert_arrays_eq(actual, expected):
     for a, e in zip(actual, expected):
         np.testing.assert_array_equal(a, e)
-
-
-class ImageProducerFromDataArray:
-    def __init__(self, validation_da: DataArray):
-        self.validation_da = validation_da
-
-    def __call__(self, estimator: Estimator) -> NDArray:
-        return apply(estimator).to(self.validation_da).compute().values
 
 
 def test_produce_image_from_given_data_array(validation_da, estimator):
