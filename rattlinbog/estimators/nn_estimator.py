@@ -76,5 +76,8 @@ class NNEstimator(Estimator, ABC):
                 estimate = estimate.squeeze(0)
             return estimate.cpu().numpy()
 
+    def loss_for_estimate(self, estimate: NDArray, ground_truth: NDArray) -> float:
+        return self.loss_fn(estimate, ground_truth)
+
     def _more_tags(self):
         return {'X_types': [Iterable[NDArray]], 'y_types': [Iterable[NDArray]]}
