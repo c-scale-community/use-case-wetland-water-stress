@@ -25,8 +25,11 @@ class Estimator(BaseEstimator):
     def predict(self, X: NDArray) -> NDArray:
         ...
 
-    @abstractmethod
     def score(self, X: NDArray, y: NDArray) -> Score:
+        return self.score_estimate(self.predict(X), y)
+
+    @abstractmethod
+    def score_estimate(self, estimate: NDArray, ground_truth: NDArray) -> Score:
         ...
 
     @property

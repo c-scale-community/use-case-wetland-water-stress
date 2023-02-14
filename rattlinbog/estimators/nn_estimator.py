@@ -76,12 +76,5 @@ class NNEstimator(Estimator, ABC):
                 estimate = estimate.squeeze(0)
             return estimate.cpu().numpy()
 
-    def score(self, X: NDArray, y: NDArray) -> Score:
-        return self.score_estimate(self.predict(X), y)
-
-    @abstractmethod
-    def score_estimate(self, estimate: NDArray, ground_truth: NDArray) -> Score:
-        ...
-
     def _more_tags(self):
         return {'X_types': [Iterable[NDArray]], 'y_types': [Iterable[NDArray]]}
