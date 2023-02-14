@@ -1,21 +1,23 @@
 import argparse
 from pathlib import Path
 
+import numpy as np
 import rioxarray
 import xarray as xr
-
+import yaml
 from eotransform_pandas.filesystem.gather import gather_files
 from eotransform_pandas.filesystem.naming.geopathfinder_conventions import yeoda_naming_convention
 from equi7grid.equi7grid import Equi7Grid
 from geopathfinder.naming_conventions.yeoda_naming import YeodaFilename
 from xarray import Dataset
 
+from rattlinbog.config import Restructure
 from rattlinbog.io_xarray.store_as_compressed_zarr import store_as_compressed_zarr
 from rattlinbog.loaders import load_harmonic_orbits
 from rattlinbog.rasterize_shape import get_sampling_from_tile
 
 
-def restructure(tile: str, parameter_file_ds_root: Path, mask_file_ds_root: Path, dst_root: Path):
+def restructure(tile: str, parameter_file_ds_root: Path, mask_file_ds_root: Path, dst_root: Path, config: Restructure):
     sampling = get_sampling_from_tile(tile)
     e7tile = Equi7Grid(sampling).create_tile(tile)
     grid_name, tile_name = e7tile.name.split('_')
@@ -27,23 +29,26 @@ def restructure(tile: str, parameter_file_ds_root: Path, mask_file_ds_root: Path
         return ds['orbits'].mean(dim='orbit').expand_dims(parameter=[name])
 
     parameters_arrays = xr.concat([collapse_orbits(load_harmonic_orbits(parameter_files, p), p)
-                                   for p in parameters], dim='parameter').chunk({'parameter': -1, 'y': 1000, 'x': 1000})
+                                   for p in parameters], dim='parameter')
 
     mask_tile_root = mask_file_ds_root / f"EQUI7_{grid_name}" / tile_name
     mask_file = gather_files(mask_tile_root, yeoda_naming_convention)['filepath'].iloc[0]
-    mask = rioxarray.open_rasterio(mask_file).chunk({'band': 1, 'y': 1000, 'x': 1000})
+    mask = rioxarray.open_rasterio(mask_file)
 
-    restructured_ds = Dataset(dict(params=parameters_arrays, mask=mask[0]))
+    restructured_ds = Dataset(dict(params=parameters_arrays, ground_truth=mask[0]))
 
+    for roi in config.rois:
+        parent_extra = YeodaFilename.from_filename(mask_file.name)['extra_field']
+        smart_name = Path(str(YeodaFilename(dict(var_name=f'{parameter_file_ds_root.parent.name}-MASK',
+                                                 extra_field=f"{parent_extra}-ROI-{'-'.join(map(str, roi))}",
+                                                 grid_name=grid_name,
+                                                 tile_name=tile_name))))
+        out = dst_root / f"EQUI7_{grid_name}" / tile_name / smart_name.with_suffix('.zarr')
+        out.parent.mkdir(parents=True, exist_ok=True)
 
-    smart_name = Path(str(YeodaFilename(dict(var_name=f'{parameter_file_ds_root.parent.name}-MASK',
-                                             extra_field=YeodaFilename.from_filename(mask_file.name)['extra_field'],
-                                             grid_name=grid_name,
-                                             tile_name=tile_name))))
-    out = dst_root / f"EQUI7_{grid_name}" / tile_name / smart_name.with_suffix('.zarr')
-    out.parent.mkdir(parents=True, exist_ok=True)
-
-    store_as_compressed_zarr(restructured_ds, out)
+        top, left, height, width = roi
+        roi = restructured_ds.isel(y=slice(top, top + height), x=slice(left, left + width))
+        store_as_compressed_zarr(roi.chunk({'parameter': -1, 'y': config.chunk_size, 'x': config.chunk_size}), out)
 
 
 if __name__ == '__main__':
@@ -53,5 +58,7 @@ if __name__ == '__main__':
     parser.add_argument("param_root", help="Path to the parameter root file dataset", type=Path)
     parser.add_argument("mask_root", help="Path to rasterized mask file dataset root", type=Path)
     parser.add_argument("dst_root", help="Root path of destination file dataset", type=Path)
+    parser.add_argument("config", help="Config file", type=Path)
     args = parser.parse_args()
-    restructure(args.tile, args.param_root, args.mask_root, args.dst_root)
+    config = yaml.safe_load(args.config.read_text())
+    restructure(args.tile, args.param_root, args.mask_root, args.dst_root, config)

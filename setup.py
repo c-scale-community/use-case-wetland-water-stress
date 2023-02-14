@@ -15,7 +15,7 @@ setup(
     install_requires=["xarray", "rioxarray", "rasterio", "eotransform", "eotransform-xarray", "eotransform-pandas",
                       "geopandas", "jupyter", "numba", "numpy", "matplotlib", "dask", "distributed", "geopathfinder",
                       "equi7grid", "affine", "zarr", "scikit-learn", "scikit-image", "dask-ml", "torch", "scipy",
-                      "tqdm", "tensorboard"],
+                      "tqdm", "tensorboard", "pyyaml"],
     extras_require={"test": ['pytest', 'pytest-cov', 'approvaltests', 'pytest-approvaltests-geo'],
                     "views": ['holoviews', 'datashader', 'panel', 'param']},
     include_package_data=True,

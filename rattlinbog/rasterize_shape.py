@@ -2,10 +2,9 @@ import argparse
 import re
 from pathlib import Path
 
-import numpy as np
 import geopandas as pd
-import rioxarray    # noqa # pylint: disable=unused-import
-
+import numpy as np
+import rioxarray  # noqa # pylint: disable=unused-import
 from affine import Affine
 from equi7grid.equi7grid import Equi7Grid
 from geopathfinder.naming_conventions.yeoda_naming import YeodaFilename
@@ -30,8 +29,9 @@ def main(tile: str, src_shape: Path, dst_file_dataset_root: Path):
     raster = DataArray(np.ones((1, *e7tile.shape_px()), dtype=np.uint8), dims=['band', 'y', 'x'])
     raster.rio.write_crs(e7tile.projection.proj4, inplace=True)
     raster.rio.write_transform(Affine.from_gdal(*e7tile.geotransform()), inplace=True)
-    raster.rio.write_nodata(0, encoded=False, inplace=True)
+    raster.rio.write_nodata(255, encoded=False, inplace=True)
     raster = raster.rio.clip(shape.geometry.apply(mapping), shape.crs, drop=False, invert=False)
+    raster = raster.where(raster != 255, 0)
 
     grid_name, tile_name = e7tile.name.split('_')
     out_smart_name = YeodaFilename(dict(var_name='MASK',
