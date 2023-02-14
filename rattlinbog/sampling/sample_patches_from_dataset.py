@@ -6,6 +6,7 @@ from skimage.morphology import binary_dilation
 from xarray import Dataset, DataArray
 
 from rattlinbog.geometry.rect_int import RectInt
+from rattlinbog.th_extensions.utils.dataset_splitters import GROUND_TRUTH_KEY, PARAMS_KEY
 
 SAMPLED_INDICES_KEY = 'sampled_indices'
 PATCH_SIZE_KEY = 'patch_size'
@@ -41,10 +42,10 @@ def _needs_resampling(dataset, patch_size, never_nans):
 
 
 def _calc_yes_and_no_masks(dataset, ps_h2, never_nans):
-    mask_yes_wl = dataset['mask'].fillna(0).astype(bool).values
+    mask_yes_wl = dataset[GROUND_TRUTH_KEY].fillna(0).astype(bool).values
     mask_no_wl = np.logical_not(mask_yes_wl)
     if never_nans:
-        nan_masks = dataset['params'].isnull()
+        nan_masks = dataset[PARAMS_KEY].isnull()
         nan_mask = binary_dilation(nan_masks.sum(dim=nan_masks.dims[0]) > 0, np.ones((ps_h2, ps_h2)))
         mask_yes_wl = np.logical_and(mask_yes_wl, np.logical_not(nan_mask))
         mask_no_wl = np.logical_and(mask_no_wl, np.logical_not(nan_mask))

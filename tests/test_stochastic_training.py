@@ -18,7 +18,8 @@ from factories import make_raster
 from rattlinbog.io_xarray.store_as_compressed_zarr import store_as_compressed_zarr
 from rattlinbog.sampling.sample_patches_from_dataset import sample_patches_from_dataset
 from rattlinbog.th_extensions.utils.data.streamed_xarray_dataset import StreamedXArrayDataset
-from rattlinbog.th_extensions.utils.dataset_splitters import split_to_params_and_labels
+from rattlinbog.th_extensions.utils.dataset_splitters import split_to_params_and_ground_truth, PARAMS_KEY, \
+    GROUND_TRUTH_KEY
 
 HYSTERESIS = 0.2
 
@@ -59,12 +60,12 @@ def tile_dataset_with_nan():
     mostly_nan[0, :96, :] = np.nan
     mostly_nan[1, :, :96] = np.nan
 
-    mask = np.ones((128, 128), dtype=np.bool)
-    mask[:112, :] = False
+    gt = np.ones((128, 128), dtype=np.bool)
+    gt[:112, :] = False
 
     return Dataset({
-        'params': make_raster(mostly_nan),
-        'mask': make_raster(mask)
+        PARAMS_KEY: make_raster(mostly_nan),
+        GROUND_TRUTH_KEY: make_raster(gt)
     })
 
 
@@ -76,16 +77,16 @@ def fixed_rng():
 @pytest.fixture
 def torch_tile_dataset(tile_dataset, fixed_rng):
     sampled = sample_patches_from_dataset(tile_dataset, 32, 19, rnd_generator=fixed_rng)
-    return StreamedXArrayDataset(sampled, split_to_params_and_labels)
+    return StreamedXArrayDataset(sampled, split_to_params_and_ground_truth)
 
 
 @pytest.fixture
 def tile_dataset_dummy():
-    mask = np.ones((128, 128), dtype=np.bool)
-    mask[:112, :] = False
+    gt = np.ones((128, 128), dtype=np.bool)
+    gt[:112, :] = False
     return Dataset({
-        'params': make_raster(np.ones((2, 128, 128), dtype=np.float32)),
-        'mask': make_raster(mask)
+        PARAMS_KEY: make_raster(np.ones((2, 128, 128), dtype=np.float32)),
+        GROUND_TRUTH_KEY: make_raster(gt)
     })
 
 
@@ -108,8 +109,8 @@ def test_stochastic_patch_samples_from_dataset(tile_dataset, verify_raster_as_ge
 
 def test_patch_samples_are_balanced(tile_dataset, verify_raster_as_geo_zarr, fixed_rng):
     patches = list(sample_patches_from_dataset(tile_dataset, 32, 2, rnd_generator=fixed_rng))
-    a_has_mask_pixels = patches[0]['mask'].sum().values.item() > 0
-    b_has_mask_pixels = patches[1]['mask'].sum().values.item() > 0
+    a_has_mask_pixels = patches[0][GROUND_TRUTH_KEY].sum().values.item() > 0
+    b_has_mask_pixels = patches[1][GROUND_TRUTH_KEY].sum().values.item() > 0
     assert (a_has_mask_pixels and not b_has_mask_pixels) or (b_has_mask_pixels and not a_has_mask_pixels)
 
 
@@ -126,9 +127,9 @@ def test_patch_samples_caches_valid_indices_in_dataset(tile_dataset, fixed_rng):
 
 def test_never_sample_patches_with_nans(tile_dataset_with_nan, verify_raster_as_geo_zarr, fixed_rng):
     patches = list(sample_patches_from_dataset(tile_dataset_with_nan, 8, 4, rnd_generator=fixed_rng, never_nans=False))
-    assert any(patch['params'].isnull().any() for patch in patches)
+    assert any(patch[PARAMS_KEY].isnull().any() for patch in patches)
     patches = list(sample_patches_from_dataset(tile_dataset_with_nan, 8, 4, rnd_generator=fixed_rng, never_nans=True))
-    assert not any(patch['params'].isnull().any() for patch in patches)
+    assert not any(patch[PARAMS_KEY].isnull().any() for patch in patches)
 
 
 def test_sampled_patches_as_torch_dataset_can_be_loaded_by_dataloader(torch_tile_dataset):

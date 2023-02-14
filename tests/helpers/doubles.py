@@ -7,7 +7,7 @@ from numpy._typing import NDArray
 
 from rattlinbog.estimators.base import Estimator, Score, EstimateDescription, LogSink, ScoreableEstimator
 from rattlinbog.estimators.nn_estimator import NNEstimator
-from rattlinbog.th_extensions.utils.dataset_splitters import split_to_params_and_labels
+from rattlinbog.th_extensions.utils.dataset_splitters import split_to_params_and_ground_truth
 
 
 # noinspection PyPep8Naming,PyAttributeOutsideInit
@@ -89,7 +89,7 @@ class DelayingSplit:
 
     def __call__(self, *args, **kwargs):
         time.sleep(self.loading_time)
-        return split_to_params_and_labels(*args, **kwargs)
+        return split_to_params_and_ground_truth(*args, **kwargs)
 
 
 class ScoreableEstimatorSpy(ScoreableEstimator):

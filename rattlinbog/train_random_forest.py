@@ -11,11 +11,12 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import GridSearchCV
 
 from rattlinbog.loaders import DATE_FORMAT
+from rattlinbog.th_extensions.utils.dataset_splitters import GROUND_TRUTH_KEY, PARAMS_KEY
 
 
 def train_random_forest(data_zarr: Path, dst: Path, n_iter=10):
     dataset = xr.open_zarr(data_zarr)
-    mask = dataset['mask'].fillna(0)
+    mask = dataset[GROUND_TRUTH_KEY].fillna(0)
     indices_0 = np.nonzero(np.logical_not(mask)).values
     indices_1 = np.nonzero(mask).values
 
@@ -31,7 +32,7 @@ def train_random_forest(data_zarr: Path, dst: Path, n_iter=10):
 
     balanced_sample_indices = np.concatenate([indices_0[:, choices_0], indices_1[:, choices_1]], axis=1)
 
-    samples = dataset['params'].isel(y=xr.DataArray(balanced_sample_indices[0], dims="samples"),
+    samples = dataset[PARAMS_KEY].isel(y=xr.DataArray(balanced_sample_indices[0], dims="samples"),
                                      x=xr.DataArray(balanced_sample_indices[1], dims="samples"))
     labels = mask.isel(y=xr.DataArray(balanced_sample_indices[0], dims="samples"),
                        x=xr.DataArray(balanced_sample_indices[1], dims="samples"))
@@ -61,7 +62,7 @@ def train_random_forest(data_zarr: Path, dst: Path, n_iter=10):
         p = model.predict(a.reshape(-1, a.shape[-1]))
         return p.reshape(a.shape[:2])
 
-    estimated = xr.apply_ufunc(estimate, dataset['params'], input_core_dims=[['parameter']],
+    estimated = xr.apply_ufunc(estimate, dataset[PARAMS_KEY], input_core_dims=[['parameter']],
                                kwargs=dict(model=fitted),
                                dask='parallelized', output_dtypes=np.float32)
     estimated.load(scheduler='processes').plot.imshow()
