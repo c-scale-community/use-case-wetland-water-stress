@@ -2,9 +2,9 @@ import numpy as np
 import pytest
 import torch as th
 import xarray as xr
-from factories import make_raster
 from numpy.typing import NDArray
 
+from factories import make_raster
 from rattlinbog.estimators.apply import apply
 from rattlinbog.estimators.base import Estimator, EstimateDescription, Score
 from rattlinbog.th_extensions.nn.unet import UNet
@@ -92,3 +92,9 @@ def test_handle_uneven_divisions_when_up_sampling(model_with_3_divisions):
     raster_with_even_size = make_raster(np.zeros((1, 40, 40), dtype=np.float32)).chunk({'y': 10, 'x': 10})
     estimate = apply(model_with_3_divisions).to(raster_with_even_size).compute()
     assert estimate.shape == (1, 40, 40)
+
+
+def test_handle_uneven_padding_divisions_correctly(model_with_3_divisions):
+    raster_with_even_size = make_raster(np.zeros((1, 10, 10), dtype=np.float32)).chunk({'y': 5, 'x': 5})
+    estimate = apply(model_with_3_divisions).to(raster_with_even_size).compute()
+    assert estimate.shape == (1, 10, 10)

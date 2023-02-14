@@ -29,12 +29,11 @@ class _DataArrayMapper:
         power_two_n = int(np.power(2, num_divisions))
         d = int(np.ceil(size / power_two_n))
         addition = (d * power_two_n) - size
-        return (addition // 2), (addition // 2)
+        return (addition // 2), (addition // 2) + addition % 2
 
     @staticmethod
     def _pad_to(array, y_padding, x_padding):
-        return np.pad(array, ((0, 0), y_padding, x_padding),
-                      mode='constant', constant_values=-np.inf)
+        return np.pad(array, ((0, 0), y_padding, x_padding), mode='reflect')
 
     @staticmethod
     def _trunc_pad(array, y_padding, y_size, x_padding, x_size):

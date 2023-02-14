@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Optional, Sequence, List
+from typing import Optional, List
 
 import torch as th
 from torch import nn as nn
@@ -64,6 +64,7 @@ class RemoveSkips(nn.Module):
 class UNet(nn.Module):
     def __init__(self, in_dims: int, hidden: List[int], out_dims: int, out_activation: Optional[nn.Module] = None):
         super().__init__()
+        self._num_hidden = len(hidden)
         self._encoding = nn.Sequential(*tuple(EncoderBlock(i, o)
                                               for i, o in zip([in_dims] + hidden[:-2], hidden[:-1])))
         self._bridge = conv_block(hidden[-2], hidden[-1])
@@ -73,6 +74,10 @@ class UNet(nn.Module):
         self._prediction = nn.Conv2d(rev[-1], out_dims, kernel_size=3, stride=1, dilation=1, padding=1)
         if out_activation:
             self._prediction.add_module("OutActivation", out_activation)
+
+    @property
+    def num_hidden_layers(self) -> int:
+        return self._num_hidden
 
     def forward(self, x):
         x, skips = self._encoding((x, []))
