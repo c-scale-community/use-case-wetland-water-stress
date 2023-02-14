@@ -3,9 +3,8 @@ from dataclasses import dataclass
 from typing import Sequence, Dict, Callable, Optional
 
 from numpy.typing import NDArray
-from typing_extensions import Protocol
-
 from sklearn.base import BaseEstimator
+from typing_extensions import Protocol
 
 Coords = Sequence
 DimsWithCoords = Dict[str, Coords]
@@ -15,6 +14,7 @@ Score = Dict[str, float]
 @dataclass
 class EstimateDescription:
     dims: DimsWithCoords
+    num_divisions: int
 
 
 # turn of inspections that collide with scikit-learn API requirements & style guide, see:
