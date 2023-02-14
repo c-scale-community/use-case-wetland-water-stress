@@ -13,6 +13,7 @@ from pytest_approvaltests_geo import GeoOptions, CompareGeoZarrs, ReportGeoZarrs
 from torch.utils.data import DataLoader
 from xarray import Dataset
 
+from doubles import DelayingSplit
 from factories import make_raster
 from rattlinbog.io_xarray.store_as_compressed_zarr import store_as_compressed_zarr
 from rattlinbog.sampling.sample_patches_from_dataset import sample_patches_from_dataset
@@ -90,18 +91,7 @@ def tile_dataset_dummy():
 
 @pytest.fixture
 def splitter_with_loading_time():
-    class _DelayingSplit:
-        def __init__(self):
-            self.loading_time = 0.0
-
-        def set_loading_time(self, seconds):
-            self.loading_time = seconds
-
-        def __call__(self, *args, **kwargs):
-            time.sleep(self.loading_time)
-            return split_to_params_and_labels(*args, **kwargs)
-
-    return _DelayingSplit()
+    return DelayingSplit()
 
 
 @pytest.fixture

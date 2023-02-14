@@ -1,30 +1,11 @@
 import numpy as np
 import pytest
-import torch as th
 import xarray as xr
-from numpy.typing import NDArray
 
+from doubles import AlwaysTrue, NNPredictorStub, MultiClassEstimator
 from factories import make_raster
 from rattlinbog.estimators.apply import apply
-from rattlinbog.estimators.base import Estimator, EstimateDescription, Score
 from rattlinbog.th_extensions.nn.unet import UNet
-
-
-# noinspection PyPep8Naming,PyAttributeOutsideInit
-class AlwaysTrue(Estimator):
-    def __init__(self):
-        self.num_predictions = 0
-
-    def predict(self, X: NDArray) -> NDArray:
-        self.num_predictions += 1
-        return np.ones((1,) + X.shape[1:])
-
-    def score(self, X: NDArray, y: NDArray) -> Score:
-        raise NotImplementedError
-
-    @property
-    def out_description(self) -> EstimateDescription:
-        return EstimateDescription({'estimate': ['yes']}, 0)
 
 
 @pytest.fixture
@@ -32,34 +13,9 @@ def estimate_always_true():
     return AlwaysTrue()
 
 
-class NNPredictorStub(Estimator):
-    def __init__(self, net):
-        self.net = net
-
-    def predict(self, X: NDArray) -> NDArray:
-        return self.net(th.from_numpy(X).unsqueeze(0)).squeeze(0).detach().numpy()
-
-    def score(self, X: NDArray, y: NDArray) -> Score:
-        raise NotImplementedError
-
-    @property
-    def out_description(self) -> EstimateDescription:
-        return EstimateDescription({'nn_out': ['garbage']}, 3)
-
-
 @pytest.fixture
 def model_with_3_divisions():
     return NNPredictorStub(UNet(1, [2, 4, 8], 1))
-
-
-# noinspection PyPep8Naming,PyAttributeOutsideInit
-class MultiClassEstimator(Estimator):
-    def predict(self, X: NDArray) -> NDArray:
-        return np.full((4,) + X.shape[1:], 0.25)
-
-    @property
-    def out_description(self) -> EstimateDescription:
-        return EstimateDescription({'classes': ["a", "b", "c", "d"]}, 0)
 
 
 @pytest.fixture

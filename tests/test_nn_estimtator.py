@@ -1,11 +1,9 @@
-from collections import defaultdict
 from typing import Iterator, Tuple
 
 import numpy as np
 import pytest
 import torch as th
 import torch.cuda
-from approval_utilities.utilities.exceptions.multiple_exceptions import MultipleExceptions
 from numpy.typing import NDArray
 from sklearn import clone
 from sklearn.utils.estimator_checks import check_estimator
@@ -13,11 +11,12 @@ from torch.nn import Sigmoid, MSELoss
 from torch.optim.adam import Adam
 from torch.utils.data import IterableDataset
 
+from assertions import gather_all_exceptions
+from doubles import NNEstimatorStub, LogSpy
 from factories import make_raster
 from rattlinbog.estimators.apply import apply
-from rattlinbog.estimators.base import Estimator, LogSink, ValidationLogging, LogConfig, Validation, \
-    EstimateDescription, Score, ImageLogging
-from rattlinbog.estimators.nn_estimator import NNEstimator
+from rattlinbog.estimators.base import Estimator, ValidationLogging, LogConfig, Validation, \
+    ImageLogging
 from rattlinbog.estimators.wetland_classifier import WetlandClassifier
 from rattlinbog.th_extensions.nn.unet import UNet
 
@@ -30,15 +29,6 @@ def unet():
 @pytest.fixture
 def nn_estimator_params(unet):
     return dict(net=unet, batch_size=16, optim_factory=lambda p: Adam(p, lr=1e-2), loss_fn=MSELoss(), log_cfg=None)
-
-
-class NNEstimatorStub(NNEstimator):
-    def score(self, X: NDArray, y: NDArray) -> Score:
-        return {'SCORE_A': 0.42, 'SCORE_B': 42}
-
-    @property
-    def out_description(self) -> EstimateDescription:
-        return EstimateDescription({'class_prob': ['is_class']})
 
 
 @pytest.fixture
@@ -108,24 +98,7 @@ def log_sink():
 
 
 def make_log_sink():
-    class _LogSpy(LogSink):
-        def __init__(self):
-            self.received_scalar_steps = defaultdict(list)
-            self.received_scalars_steps = defaultdict(list)
-            self.received_image_steps = defaultdict(list)
-            self.received_scalars_names = dict()
-
-        def add_scalar(self, tag, scalar_value, global_step=None):
-            self.received_scalar_steps[tag].append(global_step)
-
-        def add_scalars(self, main_tag, tag_scalar_dict, global_step=None):
-            self.received_scalars_steps[main_tag].append(global_step)
-            self.received_scalars_names[main_tag] = set(tag_scalar_dict.keys())
-
-        def add_image(self, tag, img_tensor, global_step=None):
-            self.received_image_steps[tag].append(global_step)
-
-    return _LogSpy()
+    return LogSpy()
 
 
 def test_unet_estimator_is_sklearn_compatible(nn_estimator, nn_estimator_params):
@@ -147,28 +120,6 @@ def test_fit_unet_estimator_to_label_data(nn_estimator, generated_dataset, one_i
 
     assert_prediction_eq(nn_estimator.predict(one_input), zero_output)
     assert_prediction_eq(nn_estimator.predict(zero_input), one_output)
-
-
-def gather_all_exceptions(params, code_to_execute):
-    class _Collector:
-        def __init__(self):
-            self.exceptions = []
-
-        def add(self, exception):
-            self.exceptions.append(exception)
-
-        def assert_any_is_true(self):
-            if len(params) == len(self.exceptions):
-                raise MultipleExceptions(self.exceptions)
-
-    collector = _Collector()
-    for p in params:
-        try:
-            code_to_execute(p)
-        except Exception as e:
-            collector.add(e)
-
-    return collector
 
 
 def assert_prediction_ne(actual: NDArray, expected: NDArray) -> None:
