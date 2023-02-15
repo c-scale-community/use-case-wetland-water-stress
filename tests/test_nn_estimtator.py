@@ -10,6 +10,7 @@ from sklearn.utils.estimator_checks import check_estimator
 from torch.nn import Sigmoid, MSELoss
 from torch.optim.adam import Adam
 from torch.utils.data import IterableDataset
+from xarray import Dataset
 
 from assertions import gather_all_exceptions
 from doubles import NNEstimatorStub, LogSpy
@@ -18,7 +19,9 @@ from rattlinbog.estimators.apply import apply
 from rattlinbog.estimators.base import Estimator, ValidationLogging, LogConfig, Validation, \
     ImageLogging
 from rattlinbog.estimators.wetland_classifier import WetlandClassifier
+from rattlinbog.evaluate.validator_of_dataset import ValidatorOfDataset
 from rattlinbog.th_extensions.nn.unet import UNet
+from rattlinbog.th_extensions.utils.dataset_splitters import PARAMS_KEY, GROUND_TRUTH_KEY
 
 
 @pytest.fixture
@@ -99,6 +102,14 @@ def log_sink():
 
 def make_log_sink():
     return LogSpy()
+
+
+@pytest.fixture
+def validator(one_input, zero_output):
+    return ValidatorOfDataset(Dataset({
+        PARAMS_KEY: make_raster(one_input),
+        GROUND_TRUTH_KEY: make_raster(zero_output[0])
+    }).chunk())
 
 
 def test_unet_estimator_is_sklearn_compatible(nn_estimator, nn_estimator_params):
@@ -184,11 +195,12 @@ def assert_received_images_at_correct_frequency(log_sink, n_training_steps, img_
     assert log_sink.received_image_steps['images'] == list(range(0, n_training_steps, img_freq))
 
 
-def test_wetland_classification_estimator_protocol(wl_estimator, one_input, one_output):
+def test_wetland_classification_estimator_protocol(wl_estimator, one_input, one_output, validator):
     assert wl_estimator.out_description.dims == {'class_probs': ['is_wetland']}
     assert wl_estimator.out_description.num_divisions == 2
     assert apply(wl_estimator).to(make_raster(one_input).chunk()).load().shape == (1, *one_input.shape[1:])
     assert_has_scores_as_scalars(wl_estimator.score(one_input, one_output), ['F1', 'BA', 'TPR', 'TNR', 'FPR', 'FNR'])
+    assert_has_scores_as_scalars(validator(wl_estimator).score, ['F1', 'BA', 'TPR', 'TNR', 'FPR', 'FNR'])
 
 
 def assert_has_scores_as_scalars(actual, expected_scores):

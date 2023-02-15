@@ -12,7 +12,7 @@ from rattlinbog.th_extensions.utils.dataset_splitters import PARAMS_KEY, GROUND_
 @pytest.fixture
 def validation_ds():
     return Dataset({PARAMS_KEY: (make_raster(np.ones((3, 32, 32)))),
-                    GROUND_TRUTH_KEY: (make_raster(np.zeros((1, 32, 32)), param_dim=('class', ['yes'])))}).chunk()
+                    GROUND_TRUTH_KEY: (make_raster(np.zeros((32, 32))))}).chunk()
 
 
 @pytest.fixture

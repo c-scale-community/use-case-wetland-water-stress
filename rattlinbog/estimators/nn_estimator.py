@@ -80,7 +80,13 @@ class NNEstimator(ScoreableEstimator, ABC):
         return self.score_estimate(self.predict(X), y)
 
     def loss_for_estimate(self, estimate: NDArray, ground_truth: NDArray) -> float:
-        return self.loss_fn(estimate, ground_truth)
+        x = th.from_numpy(estimate)
+        y = th.from_numpy(ground_truth)
+        if x.ndim == 3:
+            x = x.unsqueeze(0)
+        while y.ndim < 4:
+            y = y.unsqueeze(0)
+        return self.loss_fn(x, y)
 
     def _more_tags(self):
         return {'X_types': [Iterable[NDArray]], 'y_types': [Iterable[NDArray]]}
