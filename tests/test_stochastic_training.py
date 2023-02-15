@@ -125,6 +125,22 @@ def test_patch_samples_caches_valid_indices_in_dataset(tile_dataset, fixed_rng):
     assert cached.total_measures < init.total_measures / 2
 
 
+@pytest.mark.parametrize('new_config', [
+    dict(patch_size=16, n_samples=2, never_nans=False),
+    dict(patch_size=32, n_samples=3, never_nans=False),
+    dict(patch_size=32, n_samples=2, never_nans=True),
+])
+def test_patch_samples_invalidates_caches_appropriately(tile_dataset, new_config):
+    init = PerformanceClock("init")
+    with init.measure():
+        next(iter(sample_patches_from_dataset(tile_dataset, patch_size=32, n_samples=2, never_nans=False)))
+    cached = PerformanceClock("cached")
+    with cached.measure():
+        next(iter(sample_patches_from_dataset(tile_dataset, **new_config)))
+
+    assert cached.total_measures > init.total_measures / 2
+
+
 def test_never_sample_patches_with_nans(tile_dataset_with_nan, verify_raster_as_geo_zarr, fixed_rng):
     patches = list(sample_patches_from_dataset(tile_dataset_with_nan, 8, 4, rnd_generator=fixed_rng, never_nans=False))
     assert any(patch[PARAMS_KEY].isnull().any() for patch in patches)
