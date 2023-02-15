@@ -65,16 +65,10 @@ class NNEstimatorStub(NNEstimator):
 class LogSpy(LogSink):
     def __init__(self):
         self.received_scalar_steps = defaultdict(list)
-        self.received_scalars_steps = defaultdict(list)
         self.received_image_steps = defaultdict(list)
-        self.received_scalars_names = dict()
 
     def add_scalar(self, tag, scalar_value, global_step=None):
         self.received_scalar_steps[tag].append(global_step)
-
-    def add_scalars(self, main_tag, tag_scalar_dict, global_step=None):
-        self.received_scalars_steps[main_tag].append(global_step)
-        self.received_scalars_names[main_tag] = set(tag_scalar_dict.keys())
 
     def add_image(self, tag, img_tensor, global_step=None):
         self.received_image_steps[tag].append(global_step)

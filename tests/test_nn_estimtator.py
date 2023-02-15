@@ -173,11 +173,10 @@ def test_write_validation_score_statistics_to_logging_facilities_at_specified_fr
 
 def assert_received_log_at_correct_frequency(train_sink, valid_sink, n_training_steps, valid_freq):
     assert train_sink.received_scalar_steps['loss'] == list(range(n_training_steps))
-    assert train_sink.received_scalars_steps['score'] == list(range(0, n_training_steps, valid_freq))
-    assert train_sink.received_scalars_names['score'] == {'SCORE_A', 'SCORE_B'}
+    assert train_sink.received_scalar_steps['SCORE_A'] == list(range(0, n_training_steps, valid_freq))
+    assert train_sink.received_scalar_steps['SCORE_B'] == list(range(0, n_training_steps, valid_freq))
     assert valid_sink.received_scalar_steps['loss'] == list(range(0, n_training_steps, valid_freq))
-    assert valid_sink.received_scalars_steps['score'] == list(range(0, n_training_steps, valid_freq))
-    assert valid_sink.received_scalars_names['score'] == {'VAL_SCORE'}
+    assert valid_sink.received_scalar_steps['VAL_SCORE'] == list(range(0, n_training_steps, valid_freq))
 
 
 def test_log_image_at_specified_frequency(nn_estimator_params, nn_estimator_logging, generated_dataset, log_sink):

@@ -52,10 +52,12 @@ class NNEstimator(ScoreableEstimator, ABC):
     def _log_progress(self, x_batch, y_batch, loss, step):
         self.log_cfg.log_sink.add_scalar("loss", loss.item(), step)
         if self._should_log(self.log_cfg.validation, step):
-            self.log_cfg.log_sink.add_scalars("score", self.score(x_batch.numpy(), y_batch.numpy()), step)
+            for n, s in self.score(x_batch.numpy(), y_batch.numpy()).items():
+                self.log_cfg.log_sink.add_scalar(n, s, step)
             validation = self.log_cfg.validation.validator(self)
             self.log_cfg.validation.log_sink.add_scalar("loss", validation.loss, step)
-            self.log_cfg.validation.log_sink.add_scalars("score", validation.score, step)
+            for n, s in validation.score.items():
+                self.log_cfg.validation.log_sink.add_scalar(n, s, step)
 
         if self._should_log(self.log_cfg.image, step):
             self.log_cfg.image.log_sink.add_image("images", self.log_cfg.image.image_producer(self), step)

@@ -51,10 +51,6 @@ class LogSink(Protocol):
         ...
 
     @abstractmethod
-    def add_scalars(self, main_tag, tag_scalar_dict, global_step=None):
-        ...
-
-    @abstractmethod
     def add_image(self, tag, img_tensor, global_step=None):
         ...
 
