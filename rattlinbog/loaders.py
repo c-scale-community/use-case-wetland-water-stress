@@ -96,4 +96,4 @@ def load_harmonic_orbits(harmonic_file_ds: DataFrame, variable: str) -> Dataset:
                                  combine_attrs='drop_conflicts', mask_and_scale=True, preprocess=scale_from_legacy_code)
     orbit_ds = orbit_ds.rename_dims(band='orbit')
     orbit_ds = orbit_ds.rename_vars(band_data='orbits')
-    return orbit_ds.assign_coords(orbit=('orbit', var_selection['extra_field']))
+    return orbit_ds.assign_coords(orbit=('orbit', var_selection['extra_field'])).drop_indexes('band').drop_vars('band')

@@ -1,7 +1,6 @@
 import argparse
 from pathlib import Path
 
-import numpy as np
 import rioxarray
 import xarray as xr
 import yaml
@@ -22,7 +21,7 @@ def restructure(tile: str, parameter_file_ds_root: Path, mask_file_ds_root: Path
     e7tile = Equi7Grid(sampling).create_tile(tile)
     grid_name, tile_name = e7tile.name.split('_')
     parameter_files = gather_files(parameter_file_ds_root / f"EQUI7_{grid_name}" / tile_name, yeoda_naming_convention)
-
+    parameter_files = parameter_files.sort_values('extra_field')
     parameters = list(sorted(set(parameter_files['var_name'])))
 
     def collapse_orbits(ds, name):
