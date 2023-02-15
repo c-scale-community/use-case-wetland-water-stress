@@ -1,5 +1,5 @@
 from dataclasses import asdict
-from typing import Optional
+from typing import Optional, Dict
 
 import numpy as np
 from numpy.typing import NDArray
@@ -18,6 +18,10 @@ def sigmoid(x: NDArray) -> NDArray:
     return 1 / (1 + np.exp(-x))
 
 
+def select_from_dict(d: Dict, i: int) -> Dict:
+    return {k: v[i] for k, v in d.items()}
+
+
 class WetlandClassifier(NNEstimator, ClassifierMixin):
 
     def __init__(self, net: UNet, batch_size: int, log_cfg: Optional[LogConfig] = None):
@@ -32,7 +36,7 @@ class WetlandClassifier(NNEstimator, ClassifierMixin):
         zro = score_zero_order(cm)
         fst = score_first_order(zro)
         snd = score_second_order(fst)
-        return {**asdict(fst), **asdict(snd)}
+        return select_from_dict({**asdict(fst), **asdict(snd)}, -1)
 
     @property
     def out_description(self) -> EstimateDescription:

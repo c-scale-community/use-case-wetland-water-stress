@@ -188,4 +188,9 @@ def test_wetland_classification_estimator_protocol(wl_estimator, one_input, one_
     assert wl_estimator.out_description.dims == {'class_probs': ['is_wetland']}
     assert wl_estimator.out_description.num_divisions == 2
     assert apply(wl_estimator).to(make_raster(one_input).chunk()).load().shape == (1, *one_input.shape[1:])
-    assert {'F1', 'BA', 'TPR', 'TNR', 'FPR', 'FNR'}.issubset(set(wl_estimator.score(one_input, one_output).keys()))
+    assert_has_scores_as_scalars(wl_estimator.score(one_input, one_output), ['F1', 'BA', 'TPR', 'TNR', 'FPR', 'FNR'])
+
+
+def assert_has_scores_as_scalars(actual, expected_scores):
+    for expected_score in expected_scores:
+        assert np.isscalar(actual[expected_score])
