@@ -1,4 +1,5 @@
 from abc import ABC
+from contextlib import contextmanager
 from typing import Union, Iterator, Dict, Any, Callable, Iterable, Optional
 
 import torch as th
@@ -11,6 +12,17 @@ from tqdm import tqdm
 from rattlinbog.estimators.base import LogConfig, ScoreableEstimator, Score
 
 ModelParams = Union[Iterator[Parameter], Dict[Any, Parameter]]
+
+
+@contextmanager
+def evaluating(net):
+    is_training = net.training
+    try:
+        net.eval()
+        yield net
+    finally:
+        if is_training:
+            net.train()
 
 
 # turn of inspections that collide with scikit-learn API requirements & style guide, see:
@@ -36,18 +48,20 @@ class NNEstimator(ScoreableEstimator, ABC):
         estimated_len = getattr(X, 'estimated_len', None)
         total = estimated_len // self.batch_size if estimated_len else None
         for step, (x_batch, y_batch) in tqdm(enumerate(dataloader), "fitting", total):
-            estimate = self.net(x_batch.to(device=model_device))
-            loss = self.loss_fn(estimate, y_batch.to(device=model_device))
-
+            loss = self._optimization_step(optimizer, x_batch, y_batch, model_device)
             if self.log_cfg:
                 self._log_progress(x_batch, y_batch, loss, step)
 
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-
         self.is_fitted_ = True
         return self
+
+    def _optimization_step(self, optimizer, x_batch, y_batch, model_device):
+        estimate = self.net(x_batch.to(device=model_device))
+        loss = self.loss_fn(estimate, y_batch.to(device=model_device))
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        return loss
 
     def _log_progress(self, x_batch, y_batch, loss, step):
         self.log_cfg.log_sink.add_scalar("loss", loss.item(), step)
@@ -68,12 +82,11 @@ class NNEstimator(ScoreableEstimator, ABC):
 
     def predict(self, X: NDArray) -> NDArray:
         model_device = next(self.net.parameters()).device
-        with th.no_grad():
-            self.net.eval()
+        with th.no_grad(), evaluating(self.net) as net:
             x = th.from_numpy(X)
             if x.ndim == 3:
                 x = x.unsqueeze(0)
-            estimate = self.net(x.to(device=model_device))
+            estimate = net(x.to(device=model_device))
             if estimate.shape[0] == 1:
                 estimate = estimate.squeeze(0)
             return estimate.cpu().numpy()

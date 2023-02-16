@@ -62,6 +62,16 @@ class NNEstimatorStub(NNEstimator):
         return EstimateDescription({'class_prob': ['is_class']}, 0)
 
 
+class NNEstimatorSpy(NNEstimatorStub):
+    def __init__(self, net, batch_size, optim_factory, loss_fn, log_cfg=None):
+        super().__init__(net, batch_size, optim_factory, loss_fn, log_cfg)
+        self.is_net_training_during_optimization_step = []
+
+    def _optimization_step(self, optimizer, x_batch, y_batch, model_device):
+        self.is_net_training_during_optimization_step.append(self.net.training)
+        return super()._optimization_step(optimizer, x_batch, y_batch, model_device)
+
+
 class LogSpy(LogSink):
     def __init__(self):
         self.received_scalar_steps = defaultdict(list)

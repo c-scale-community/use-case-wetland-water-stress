@@ -13,7 +13,7 @@ from torch.utils.data import IterableDataset
 from xarray import Dataset
 
 from assertions import gather_all_exceptions
-from doubles import NNEstimatorStub, LogSpy
+from doubles import NNEstimatorStub, LogSpy, NNEstimatorSpy
 from factories import make_raster
 from rattlinbog.estimators.apply import apply
 from rattlinbog.estimators.base import Estimator, ValidationLogging, LogConfig, Validation, \
@@ -48,7 +48,7 @@ def nn_estimator_gpu(unet, nn_estimator_params):
 @pytest.fixture
 def nn_estimator_logging(nn_estimator_params, log_sink):
     nn_estimator_params['log_cfg'] = LogConfig(log_sink)
-    return NNEstimatorStub(**nn_estimator_params)
+    return NNEstimatorSpy(**nn_estimator_params)
 
 
 @pytest.fixture
@@ -192,6 +192,17 @@ def test_log_image_at_specified_frequency(nn_estimator_params, nn_estimator_logg
 
 def assert_received_images_at_correct_frequency(log_sink, n_training_steps, img_freq):
     assert log_sink.received_image_steps['images'] == list(range(0, n_training_steps, img_freq))
+
+
+def test_logging_sets_model_only_temporarily_in_eval_mode(
+        nn_estimator_params, nn_estimator_logging, generated_dataset, log_sink, zero_output):
+    nn_estimator_logging.set_params(log_cfg=LogConfig(log_sink,
+                                                      ValidationLogging(2, log_sink, lambda _: Validation(0, {})),
+                                                      ImageLogging(5, log_sink, lambda _: zero_output)))
+
+    nn_estimator_logging.fit(generated_dataset(10 * nn_estimator_params['batch_size']))
+
+    assert nn_estimator_logging.is_net_training_during_optimization_step == [True] * 10
 
 
 def test_wetland_classification_estimator_protocol(wl_estimator, one_input, one_output, validator):
