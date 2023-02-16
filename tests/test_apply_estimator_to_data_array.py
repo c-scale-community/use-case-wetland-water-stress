@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
-import xarray as xr
 
+from assertions import assert_arrays_identical
 from doubles import AlwaysTrue, NNPredictorStub, MultiClassEstimator
 from factories import make_raster
 from rattlinbog.estimators.apply import apply
@@ -27,10 +27,6 @@ def test_applying_classification_estimator_to_data_array_chunks(estimate_always_
     estimated = apply(estimate_always_true).to(make_raster(np.zeros((2, 4, 4))).chunk(2))
     out_dim, = tuple(estimate_always_true.out_description.dims.items())
     assert_arrays_identical(estimated.load(), make_raster(np.ones((1, 4, 4)), param_dim=out_dim))
-
-
-def assert_arrays_identical(actual, expected):
-    xr.testing.assert_identical(actual, expected)
 
 
 def test_estimator_is_called_once_per_chunk(estimate_always_true):

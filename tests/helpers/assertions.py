@@ -1,4 +1,6 @@
+import xarray as xr
 from approval_utilities.utilities.exceptions.multiple_exceptions import MultipleExceptions
+from xarray import Dataset
 
 
 def gather_all_exceptions(params, code_to_execute):
@@ -21,3 +23,11 @@ def gather_all_exceptions(params, code_to_execute):
             collector.add(e)
 
     return collector
+
+
+def assert_dataset_eq(actual: Dataset, expected: Dataset):
+    xr.testing.assert_equal(actual, expected)
+
+
+def assert_arrays_identical(actual, expected):
+    xr.testing.assert_identical(actual, expected)

@@ -8,7 +8,7 @@ from eotransform_pandas.filesystem.gather import gather_files
 from eotransform_pandas.filesystem.naming.geopathfinder_conventions import yeoda_naming_convention
 from equi7grid.equi7grid import Equi7Grid
 from geopathfinder.naming_conventions.yeoda_naming import YeodaFilename
-from xarray import Dataset
+from xarray import Dataset, DataArray
 
 from rattlinbog.config import Restructure
 from rattlinbog.io_xarray.store_as_compressed_zarr import store_as_compressed_zarr
@@ -27,8 +27,8 @@ def restructure(tile: str, parameter_file_ds_root: Path, mask_file_ds_root: Path
     def collapse_orbits(ds, name):
         return ds['orbits'].mean(dim='orbit').expand_dims(parameter=[name])
 
-    parameters_arrays = xr.concat([collapse_orbits(load_harmonic_orbits(parameter_files, p), p)
-                                   for p in parameters], dim='parameter')
+    parameters_arrays = xr.concat([load_harmonic_orbits(parameter_files, p)
+                                   for p in parameters], dim=DataArray(parameters, dims=['parameter']))
 
     mask_tile_root = mask_file_ds_root / f"EQUI7_{grid_name}" / tile_name
     mask_file = gather_files(mask_tile_root, yeoda_naming_convention)['filepath'].iloc[0]

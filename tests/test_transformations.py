@@ -144,10 +144,6 @@ def test_store_as_net_cdf(tmp_path):
                                           [[0.5, 0.6], [0.7, 0.8]]], attrs=dict(name="dataset_0")))
 
 
-def assert_dataset_eq(actual: Dataset, expected: Dataset):
-    xr.testing.assert_equal(actual, expected)
-
-
 def test_eat_my_data():
     data_group = make_data_group(dict(area_0=[make_dataset([[0]]),
                                               make_dataset([[1]])],
