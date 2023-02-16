@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Tuple, Sequence, Set
 
 import geopandas as pd
+import numpy as np
 import rasterio
 import rioxarray
 import xarray as xr
@@ -86,7 +87,7 @@ def load_harmonic_orbits(harmonic_file_ds: DataFrame, variable: str) -> DataArra
         with rasterio.open(file) as rds:
             tags = rds.tags()
             scale = float(tags['scale_factor'])
-            return ds / scale
+            return (ds / scale).astype(np.float32)
 
     var_selection = harmonic_file_ds.loc[harmonic_file_ds['var_name'] == variable]
     orbit_files = var_selection['filepath']

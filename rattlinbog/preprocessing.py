@@ -12,4 +12,4 @@ def preprocess_hparams(da: DataArray) -> DataArray:
     nobs = da_w_amp_a_phs.sel(parameter='SIG0-HPAR-NOBS')
     mean = da_w_amp_a_phs.weighted(nobs).mean(dim='orbit', skipna=True, keep_attrs=True)
     mean.loc['SIG0-HPAR-NOBS', ...] = nobs.sum('orbit', skipna=True, keep_attrs=True)
-    return mean.assign_coords(spatial_ref=da.coords['spatial_ref'])
+    return mean.assign_coords(spatial_ref=da.coords['spatial_ref']).astype(np.float32)

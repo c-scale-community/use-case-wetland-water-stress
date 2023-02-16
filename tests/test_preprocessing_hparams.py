@@ -30,7 +30,7 @@ def hparams_processed_da():
         make_raster([[[(np.sqrt(2.34) * 120 + np.sqrt(1.36) * 60) / 180]]], param_dim=('parameter', ['SIG0-HPAR-AMP'])),
         make_raster([[[(np.arctan2(-0.3, 1.5) * 120 + np.arctan2(-0.6, -1.0) * 60) / 180]]],
                     param_dim=('parameter', ['SIG0-HPAR-PHS'])),
-    ], dim='parameter')
+    ], dim='parameter').astype(np.float32)
 
 
 def test_create_weighted_average_of_hparams_per_orbit_and_provide_phase_and_amplitude(
