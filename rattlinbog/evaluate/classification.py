@@ -61,7 +61,7 @@ def score_first_order(zero_order: ClassScore0th) -> ClassScore1st:
     t_and_f_ps = zero_order.TP + zero_order.FP
     valid_ppv = t_and_f_ps != 0
 
-    ppv = np.zeros_like(t_and_f_ps)
+    ppv = np.zeros_like(t_and_f_ps, dtype=np.float32)
     ppv[valid_ppv] = zero_order.TP[valid_ppv] / t_and_f_ps[valid_ppv]
 
     return ClassScore1st(tpr, tnr, fpr, fnr, ppv)
@@ -81,7 +81,7 @@ def score_second_order(first_order: ClassScore1st) -> ClassScore2nd:
     precision_and_rate = first_order.PPV + first_order.TPR
     valid_f1 = precision_and_rate != 0
 
-    f1 = np.zeros_like(precision_and_rate)
+    f1 = np.zeros_like(precision_and_rate, dtype=np.float32)
     f1[valid_f1] = 2.0 * (first_order.PPV[valid_f1] * first_order.TPR[valid_f1]) / precision_and_rate[valid_f1]
 
     ba = (first_order.TPR + first_order.TNR) / 2.0
