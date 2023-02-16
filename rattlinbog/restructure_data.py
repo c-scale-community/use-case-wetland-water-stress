@@ -13,6 +13,7 @@ from xarray import Dataset, DataArray
 from rattlinbog.config import Restructure
 from rattlinbog.io_xarray.store_as_compressed_zarr import store_as_compressed_zarr
 from rattlinbog.loaders import load_harmonic_orbits
+from rattlinbog.preprocessing import preprocess_hparams
 from rattlinbog.rasterize_shape import get_sampling_from_tile
 
 
@@ -24,11 +25,8 @@ def restructure(tile: str, parameter_file_ds_root: Path, mask_file_ds_root: Path
     parameter_files = parameter_files.sort_values('extra_field')
     parameters = list(sorted(set(parameter_files['var_name'])))
 
-    def collapse_orbits(ds, name):
-        return ds['orbits'].mean(dim='orbit').expand_dims(parameter=[name])
-
-    parameters_arrays = xr.concat([load_harmonic_orbits(parameter_files, p)
-                                   for p in parameters], dim=DataArray(parameters, dims=['parameter']))
+    parameters_arrays = preprocess_hparams(xr.concat([load_harmonic_orbits(parameter_files, p) for p in parameters],
+                                                     dim=DataArray(parameters, dims=['parameter'])))
 
     mask_tile_root = mask_file_ds_root / f"EQUI7_{grid_name}" / tile_name
     mask_file = gather_files(mask_tile_root, yeoda_naming_convention)['filepath'].iloc[0]
