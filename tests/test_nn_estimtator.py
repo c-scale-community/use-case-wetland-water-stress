@@ -13,13 +13,11 @@ from torch.utils.data import IterableDataset
 from xarray import Dataset
 
 from assertions import gather_all_exceptions
-from doubles import NNEstimatorStub, LogSpy, NNEstimatorSpy
+from doubles import NNEstimatorStub, LogSpy, NNEstimatorSpy, ValidationSourceStub
 from factories import make_raster
 from rattlinbog.estimators.apply import apply
-from rattlinbog.estimators.base import Estimator, ValidationLogging, LogConfig, Validation, \
-    ImageLogging
+from rattlinbog.estimators.base import ValidationLogging, LogConfig
 from rattlinbog.estimators.wetland_classifier import WetlandClassifier
-from rattlinbog.evaluate.validator_of_dataset import ValidatorOfDataset
 from rattlinbog.th_extensions.nn.unet import UNet
 from rattlinbog.th_extensions.utils.dataset_splitters import PARAMS_KEY, GROUND_TRUTH_KEY
 
@@ -105,11 +103,8 @@ def make_log_sink():
 
 
 @pytest.fixture
-def validator(one_input, zero_output):
-    return ValidatorOfDataset(Dataset({
-        PARAMS_KEY: make_raster(one_input),
-        GROUND_TRUTH_KEY: make_raster(zero_output[0])
-    }).chunk())
+def valid_src(one_output):
+    return ValidationSourceStub(one_output)
 
 
 def test_unet_estimator_is_sklearn_compatible(nn_estimator, nn_estimator_params):
@@ -157,14 +152,10 @@ def test_write_train_statistics_to_logging_facilities_if_provided(nn_estimator_l
 
 
 def test_write_validation_score_statistics_to_logging_facilities_at_specified_frequency_if_provided(
-        nn_estimator_params, nn_estimator_logging, generated_dataset):
-    def validation_fn(model: Estimator) -> Validation:
-        assert model is not None
-        return Validation(loss=0.42, score={'VAL_SCORE': 0.21})
-
+        nn_estimator_params, nn_estimator_logging, generated_dataset, valid_src):
     train_sink = make_log_sink()
     valid_sink = make_log_sink()
-    nn_estimator_logging.set_params(log_cfg=LogConfig(train_sink, ValidationLogging(2, valid_sink, validation_fn)))
+    nn_estimator_logging.set_params(log_cfg=LogConfig(train_sink, ValidationLogging(valid_sink, valid_src, 2)))
 
     nn_estimator_logging.fit(generated_dataset(10 * nn_estimator_params['batch_size']))
 
@@ -176,16 +167,15 @@ def assert_received_log_at_correct_frequency(train_sink, valid_sink, n_training_
     assert train_sink.received_scalar_steps['SCORE_A'] == list(range(0, n_training_steps, valid_freq))
     assert train_sink.received_scalar_steps['SCORE_B'] == list(range(0, n_training_steps, valid_freq))
     assert valid_sink.received_scalar_steps['loss'] == list(range(0, n_training_steps, valid_freq))
-    assert valid_sink.received_scalar_steps['VAL_SCORE'] == list(range(0, n_training_steps, valid_freq))
+    assert valid_sink.received_scalar_steps['SCORE_A'] == list(range(0, n_training_steps, valid_freq))
+    assert valid_sink.received_scalar_steps['SCORE_B'] == list(range(0, n_training_steps, valid_freq))
 
 
-def test_log_image_at_specified_frequency(nn_estimator_params, nn_estimator_logging, generated_dataset):
-    def image_fn(estimator: Estimator) -> NDArray:
-        return np.zeros((1, 8, 8))
-
+def test_log_image_at_specified_frequency(nn_estimator_params, nn_estimator_logging, generated_dataset, valid_src):
     train_sink = make_log_sink()
     valid_sink = make_log_sink()
-    nn_estimator_logging.set_params(log_cfg=LogConfig(train_sink, image=ImageLogging(5, valid_sink, image_fn)))
+    nn_estimator_logging.set_params(log_cfg=LogConfig(train_sink, ValidationLogging(valid_sink, valid_src,
+                                                                                    image_frequency=5)))
 
     nn_estimator_logging.fit(generated_dataset(10 * nn_estimator_params['batch_size']))
 
@@ -198,22 +188,20 @@ def assert_received_images_at_correct_frequency(train_sink, valid_sink, n_traini
 
 
 def test_logging_sets_model_only_temporarily_in_eval_mode(
-        nn_estimator_params, nn_estimator_logging, generated_dataset, log_sink, zero_output):
+        nn_estimator_params, nn_estimator_logging, generated_dataset, log_sink, zero_output, valid_src):
     nn_estimator_logging.set_params(log_cfg=LogConfig(log_sink,
-                                                      ValidationLogging(2, log_sink, lambda _: Validation(0, {})),
-                                                      ImageLogging(5, log_sink, lambda _: zero_output)))
+                                                      ValidationLogging(log_sink, valid_src, 2, 5)))
 
     nn_estimator_logging.fit(generated_dataset(10 * nn_estimator_params['batch_size']))
 
     assert nn_estimator_logging.is_net_training_during_optimization_step == [True] * 10
 
 
-def test_wetland_classification_estimator_protocol(wl_estimator, one_input, one_output, validator):
+def test_wetland_classification_estimator_protocol(wl_estimator, one_input, one_output):
     assert wl_estimator.out_description.dims == {'class_probs': ['is_wetland']}
     assert wl_estimator.out_description.num_divisions == 2
     assert apply(wl_estimator).to(make_raster(one_input).chunk()).load().shape == (1, *one_input.shape[1:])
     assert_has_scores_as_scalars(wl_estimator.score(one_input, one_output), ['F1', 'BA', 'TPR', 'TNR', 'FPR', 'FNR'])
-    assert_has_scores_as_scalars(validator(wl_estimator).score, ['F1', 'BA', 'TPR', 'TNR', 'FPR', 'FNR'])
 
 
 def assert_has_scores_as_scalars(actual, expected_scores):

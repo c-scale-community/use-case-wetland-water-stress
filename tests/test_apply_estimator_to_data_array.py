@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from assertions import assert_arrays_identical
-from doubles import AlwaysTrue, NNPredictorStub, MultiClassEstimator
+from doubles import AlwaysTrueEstimatorSpy, NNPredictorStub, MultiClassEstimator
 from factories import make_raster
 from rattlinbog.estimators.apply import apply
 from rattlinbog.th_extensions.nn.unet import UNet
@@ -10,7 +10,7 @@ from rattlinbog.th_extensions.nn.unet import UNet
 
 @pytest.fixture
 def estimate_always_true():
-    return AlwaysTrue()
+    return AlwaysTrueEstimatorSpy()
 
 
 @pytest.fixture

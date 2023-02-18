@@ -27,10 +27,10 @@ class WetlandClassifier(NNEstimator, ClassifierMixin):
     def __init__(self, net: UNet, batch_size: int, log_cfg: Optional[LogConfig] = None):
         super().__init__(net, batch_size, lambda p: Adam(p), BCEWithLogitsLoss(), log_cfg)
 
-    def refine_raw_estimate(self, estimate: NDArray) -> NDArray:
+    def _refine_raw_prediction(self, estimate: NDArray) -> NDArray:
         return sigmoid(estimate)
 
-    def score_estimate(self, estimates: NDArray, ground_truth: NDArray) -> Score:
+    def _score_estimate(self, estimates: NDArray, ground_truth: NDArray) -> Score:
         estimates = (estimates > 0.5).ravel()
         cm = confusion_matrix(ground_truth.ravel(), estimates)
         zro = score_zero_order(cm)

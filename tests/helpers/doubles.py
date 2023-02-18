@@ -1,24 +1,26 @@
 import time
 from collections import defaultdict
-from typing import Optional
+from typing import Optional, Dict
 
 import numpy as np
 import torch as th
-from numpy._typing import NDArray
+from numpy.typing import NDArray
 
-from rattlinbog.estimators.base import Estimator, Score, EstimateDescription, LogSink, ScoreableEstimator
+from rattlinbog.estimators.base import Estimator, Score, EstimateDescription, LogSink, ValidationSource
 from rattlinbog.estimators.nn_estimator import NNEstimator
 from rattlinbog.th_extensions.utils.dataset_splitters import split_to_params_and_ground_truth
 
 
 # noinspection PyPep8Naming,PyAttributeOutsideInit
-class AlwaysTrue(Estimator):
+class AlwaysTrueEstimatorSpy(Estimator):
     def __init__(self):
         self.num_predictions = 0
+        self.received_estimation_input = None
         self.received_param = None
 
     def predict(self, X: NDArray, param: Optional[str] = None) -> NDArray:
         self.num_predictions += 1
+        self.received_estimation_input = X
         self.received_param = param
         return np.ones((1,) + X.shape[1:])
 
@@ -57,7 +59,7 @@ class MultiClassEstimator(Estimator):
 
 
 class NNEstimatorStub(NNEstimator):
-    def score_estimate(self, estimate: NDArray, ground_truth: NDArray) -> Score:
+    def _score_estimate(self, estimate: NDArray, ground_truth: NDArray) -> Score:
         return {'SCORE_A': 0.42, 'SCORE_B': 42}
 
     @property
@@ -112,29 +114,14 @@ class DelayingSplit:
         return split_to_params_and_ground_truth(*args, **kwargs)
 
 
-class ScoreableEstimatorSpy(ScoreableEstimator):
-    def __init__(self):
-        self.returned_raw_estimate = np.zeros((1, 32, 32))
-        self.returned_refined_estimate = np.ones((1, 32, 32))
-        self.returned_loss = 0.042
-        self.returned_score = {'A': 42, 'B': 0.42}
-        self.loss_received = None
-        self.scorer_received = None
-
-    def predict(self, X: NDArray, **kwargs) -> NDArray:
-        return self.returned_raw_estimate
-
-    def refine_raw_estimate(self, estimate: NDArray) -> NDArray:
-        return self.returned_refined_estimate
-
-    def loss_for_estimate(self, estimate: NDArray, ground_truth: NDArray) -> float:
-        self.loss_received = (estimate, ground_truth)
-        return self.returned_loss
-
-    def score_estimate(self, estimate: NDArray, ground_truth: NDArray) -> Score:
-        self.scorer_received = (estimate, ground_truth)
-        return self.returned_score
+class ValidationSourceStub(ValidationSource):
+    def __init__(self, gt):
+        self.gt = gt
 
     @property
-    def out_description(self) -> EstimateDescription:
-        return EstimateDescription({'classes': ['yes']}, 0)
+    def ground_truth(self) -> NDArray:
+        return self.gt
+
+    def make_estimation_using(self, model: Estimator, estimation_kwargs: Optional[Dict] = None):
+        assert model is not None
+        return self.gt

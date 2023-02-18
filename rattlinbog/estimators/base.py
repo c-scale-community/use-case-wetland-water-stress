@@ -31,24 +31,6 @@ class Estimator(BaseEstimator):
         ...
 
 
-class Scoreable:
-    @abstractmethod
-    def loss_for_estimate(self, estimate: NDArray, ground_truth: NDArray) -> float:
-        ...
-
-    @abstractmethod
-    def refine_raw_estimate(self, estimate: NDArray) -> NDArray:
-        ...
-
-    @abstractmethod
-    def score_estimate(self, estimate: NDArray, ground_truth: NDArray) -> Score:
-        ...
-
-
-class ScoreableEstimator(Estimator, Scoreable, ABC):
-    ...
-
-
 class LogSink(Protocol):
     @abstractmethod
     def add_scalar(self, tag, scalar_value, global_step=None):
@@ -63,30 +45,26 @@ class LogSink(Protocol):
         ...
 
 
-@dataclass
-class Validation:
-    loss: float
-    score: Score
+class ValidationSource(ABC):
+    @property
+    @abstractmethod
+    def ground_truth(self) -> NDArray:
+        ...
+
+    @abstractmethod
+    def make_estimation_using(self, model: Estimator, estimation_kwargs: Optional[Dict] = None) -> NDArray:
+        ...
 
 
 @dataclass
-class IntervalLogging:
-    frequency: int
+class ValidationLogging:
     log_sink: LogSink
-
-
-@dataclass
-class ValidationLogging(IntervalLogging):
-    validator: Callable[[ScoreableEstimator], Validation]
-
-
-@dataclass
-class ImageLogging(IntervalLogging):
-    image_producer: Callable[[Estimator], NDArray]
+    source: ValidationSource
+    score_frequency: Optional[int] = None
+    image_frequency: Optional[int] = None
 
 
 @dataclass
 class LogConfig:
     log_sink: LogSink
     validation: Optional[ValidationLogging] = None
-    image: Optional[ImageLogging] = None
