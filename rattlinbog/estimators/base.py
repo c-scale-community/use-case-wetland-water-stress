@@ -22,7 +22,7 @@ class EstimateDescription:
 # noinspection PyPep8Naming,PyAttributeOutsideInit
 class Estimator(BaseEstimator):
     @abstractmethod
-    def predict(self, X: NDArray) -> NDArray:
+    def predict(self, X: NDArray, **kwargs) -> NDArray:
         ...
 
     @property
@@ -34,6 +34,10 @@ class Estimator(BaseEstimator):
 class Scoreable:
     @abstractmethod
     def loss_for_estimate(self, estimate: NDArray, ground_truth: NDArray) -> float:
+        ...
+
+    @abstractmethod
+    def refine_raw_estimate(self, estimate: NDArray) -> NDArray:
         ...
 
     @abstractmethod

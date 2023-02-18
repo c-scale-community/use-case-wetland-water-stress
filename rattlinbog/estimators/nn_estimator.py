@@ -81,7 +81,12 @@ class NNEstimator(ScoreableEstimator, ABC):
     def _should_log(cfg, step):
         return cfg and step % cfg.frequency == 0
 
-    def predict(self, X: NDArray) -> NDArray:
+    def predict(self, X: NDArray, raw=False) -> NDArray:
+        if raw:
+            return self._raw_prediction(X)
+        return self.refine_raw_estimate(self._raw_prediction(X))
+
+    def _raw_prediction(self, X):
         model_device = next(self.net.parameters()).device
         with th.no_grad(), evaluating(self.net) as net:
             x = th.from_numpy(X)
@@ -91,6 +96,9 @@ class NNEstimator(ScoreableEstimator, ABC):
             if estimate.shape[0] == 1:
                 estimate = estimate.squeeze(0)
             return estimate.cpu().numpy()
+
+    def refine_raw_estimate(self, estimate: NDArray) -> NDArray:
+        return estimate
 
     def score(self, X: NDArray, y: NDArray) -> Score:
         return self.score_estimate(self.predict(X), y)

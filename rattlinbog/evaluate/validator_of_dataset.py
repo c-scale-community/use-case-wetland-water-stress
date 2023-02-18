@@ -10,8 +10,8 @@ class ValidatorOfDataset:
         self._validation_ds = validation_ds
 
     def __call__(self, estimator: ScoreableEstimator) -> Validation:
-        estimate = apply(estimator).to(self._validation_ds[PARAMS_KEY]).compute()
+        estimate_raw = apply(estimator, dict(raw=True)).to(self._validation_ds[PARAMS_KEY]).compute()
         ground_truth = self._validation_ds[GROUND_TRUTH_KEY].load()
-        loss = estimator.loss_for_estimate(estimate.values, ground_truth.values)
-        scores = estimator.score_estimate(estimate.values, ground_truth.values)
+        loss = estimator.loss_for_estimate(estimate_raw.values, ground_truth.values)
+        scores = estimator.score_estimate(estimator.refine_raw_estimate(estimate_raw.values), ground_truth.values)
         return Validation(loss, scores)

@@ -28,7 +28,10 @@ def estimator():
 def test_validate_on_given_dataset(validation_ds, estimator):
     validate = ValidatorOfDataset(validation_ds)
     validation = validate(estimator)
-    assert_arrays_eq(estimator.scorer_received, (estimator.returned_estimate, validation_ds[GROUND_TRUTH_KEY].values))
+    assert_arrays_eq(estimator.loss_received, (estimator.returned_raw_estimate,
+                                               validation_ds[GROUND_TRUTH_KEY].values))
+    assert_arrays_eq(estimator.scorer_received, (estimator.returned_refined_estimate,
+                                                 validation_ds[GROUND_TRUTH_KEY].values))
     assert validation.loss == estimator.returned_loss and validation.score == estimator.returned_score
 
 
@@ -39,7 +42,7 @@ def assert_arrays_eq(actual, expected):
 
 def test_produce_image_from_given_data_array(validation_da, estimator):
     imager = ImageProducerFromDataArray(validation_da)
-    assert_array_eq(imager(estimator), estimator.returned_estimate)
+    assert_array_eq(imager(estimator), estimator.returned_raw_estimate)
 
 
 def assert_array_eq(actual, expected):

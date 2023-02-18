@@ -34,6 +34,11 @@ def test_estimator_is_called_once_per_chunk(estimate_always_true):
     assert estimate_always_true.num_predictions == 4
 
 
+def test_pass_kwargs_to_estimator_predict_fn(estimate_always_true):
+    apply(estimate_always_true, dict(param='some arg')).to(make_raster(np.zeros((2, 4, 4))).chunk(2)).compute()
+    assert estimate_always_true.received_param == 'some arg'
+
+
 def test_estimate_multiple_classes(estimate_multiple_classes):
     estimated = apply(estimate_multiple_classes).to(make_raster(np.zeros((2, 4, 4))).chunk(2)).compute()
     out_dims, = tuple(estimate_multiple_classes.out_description.dims.items())
