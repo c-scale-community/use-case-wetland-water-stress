@@ -1,3 +1,5 @@
+from threading import Lock
+
 import numpy as np
 from xarray import DataArray
 
@@ -7,6 +9,7 @@ from rattlinbog.estimators.base import Estimator
 class _DataArrayMapper:
     def __init__(self, estimator: Estimator):
         self._estimator = estimator
+        self._estimator_lock = Lock()
 
     def to(self, array: DataArray) -> DataArray:
         out_dims = self._estimator.out_description.dims
@@ -21,8 +24,12 @@ class _DataArrayMapper:
         x_size = block.shape[2]
         y_padding = self._calc_to_even_padding(y_size, n_divs)
         x_padding = self._calc_to_even_padding(x_size, n_divs)
-        return self._trunc_pad(self._estimator.predict(self._pad_to(block, y_padding, x_padding)),
+        return self._trunc_pad(self._safe_estimate(self._pad_to(block, y_padding, x_padding)),
                                y_padding, y_size, x_padding, x_size)
+
+    def _safe_estimate(self, x):
+        with self._estimator_lock:
+            return self._estimator.predict(x)
 
     @staticmethod
     def _calc_to_even_padding(size, num_divisions):
