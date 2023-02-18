@@ -183,7 +183,7 @@ def test_log_image_at_specified_frequency(nn_estimator_params, nn_estimator_logg
 
 
 def assert_received_images_at_correct_frequency(train_sink, valid_sink, n_training_steps, img_freq):
-    assert train_sink.received_images_steps['images'] == list(range(0, n_training_steps, img_freq))
+    assert train_sink.received_image_steps['images'] == list(range(0, n_training_steps, img_freq))
     assert valid_sink.received_image_steps['images'] == list(range(0, n_training_steps, img_freq))
 
 

@@ -81,10 +81,8 @@ class LogSpy(LogSink):
     def __init__(self):
         self.received_scalar_steps = defaultdict(list)
         self.received_image_steps = defaultdict(list)
-        self.received_images_steps = defaultdict(list)
         self.received_last_score = dict()
         self.received_last_image = dict()
-        self.received_last_images = dict()
         self.received_loss = []
 
     def add_scalar(self, tag, scalar_value, global_step=None):
@@ -96,10 +94,6 @@ class LogSpy(LogSink):
     def add_image(self, tag, img_tensor, global_step=None):
         self.received_image_steps[tag].append(global_step)
         self.received_last_image[tag] = img_tensor
-
-    def add_images(self, tag, img_tensor, global_step=None):
-        self.received_images_steps[tag].append(global_step)
-        self.received_last_images[tag] = img_tensor
 
 
 class DelayingSplit:

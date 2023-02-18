@@ -86,7 +86,7 @@ class NNEstimator(Estimator, ABC):
             if valid_est is None:
                 valid_est = self._refine_raw_prediction(valid_cfg.source.make_estimation_using(self, dict(raw=True)))
 
-            self.log_cfg.log_sink.add_images("images", estimate, step)
+            self.log_cfg.log_sink.add_image("images", estimate, step)
             valid_cfg.log_sink.add_image("images", valid_est, step)
 
     def _loss_for_estimate(self, estimate: NDArray, ground_truth: NDArray) -> float:
