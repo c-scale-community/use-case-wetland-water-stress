@@ -1,6 +1,6 @@
 from typing import Optional, Dict
 
-from numpy._typing import NDArray
+from numpy.typing import NDArray
 from xarray import Dataset
 
 from rattlinbog.estimators.apply import apply

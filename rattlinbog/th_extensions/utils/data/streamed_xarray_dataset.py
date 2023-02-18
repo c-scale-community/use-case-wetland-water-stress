@@ -1,7 +1,7 @@
 from typing import Iterable, Callable, Tuple, Iterator, Optional
 
 import dask
-from numpy._typing import NDArray
+from numpy.typing import NDArray
 from toolz import partition_all
 from torch.utils.data import IterableDataset
 from xarray import Dataset
@@ -21,3 +21,7 @@ class StreamedXArrayDataset(IterableDataset):
                               partition_all(self._stream_buffer, self._delayed_splits)):
             for ds in batched_ds:
                 yield ds
+
+    def __getitem__(self, index):
+        raise not NotImplementedError
+

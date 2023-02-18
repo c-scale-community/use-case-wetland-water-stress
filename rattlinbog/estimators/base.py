@@ -1,6 +1,6 @@
 from abc import abstractmethod, ABC
 from dataclasses import dataclass
-from typing import Sequence, Dict, Callable, Optional
+from typing import Sequence, Dict, Optional
 
 from numpy.typing import NDArray
 from sklearn.base import BaseEstimator
