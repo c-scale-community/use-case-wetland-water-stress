@@ -69,7 +69,7 @@ class IntervalLogging:
 
 @dataclass
 class ValidationLogging(IntervalLogging):
-    validator: Callable[[Estimator], Validation]
+    validator: Callable[[ScoreableEstimator], Validation]
 
 
 @dataclass

@@ -1,3 +1,4 @@
+from dataclasses import dataclass, asdict
 from typing import Optional, Iterator
 
 import numpy as np
@@ -9,23 +10,26 @@ from rattlinbog.geometry.rect_int import RectInt
 from rattlinbog.th_extensions.utils.dataset_splitters import GROUND_TRUTH_KEY, PARAMS_KEY
 
 SAMPLED_INDICES_KEY = 'sampled_indices'
-PATCH_SIZE_KEY = 'patch_size'
-N_SAMPLES_KEY = 'n_samples'
-NEVER_NANS_KEY = 'never_nans'
 
 
-def sample_patches_from_dataset(dataset: Dataset, patch_size: int, n_samples: int, never_nans: Optional[bool] = False,
+@dataclass
+class SamplingConfig:
+    patch_size: int
+    n_samples: int
+    never_nans: Optional[bool] = False
+
+
+def sample_patches_from_dataset(dataset: Dataset, config: SamplingConfig,
                                 rnd_generator: Optional[Generator] = None) -> Iterator[Dataset]:
-    ps_h2 = patch_size // 2
-    if _needs_resampling(dataset, patch_size, n_samples, never_nans):
-        mask_yes_wl, mask_no_wl = _calc_yes_and_no_masks(dataset, ps_h2, never_nans)
-        balanced_sample_indices = sample_indices_balanced_from_masks(n_samples, mask_yes_wl, mask_no_wl, rnd_generator)
+    ps_h2 = config.patch_size // 2
+    if _needs_resampling(dataset, config):
+        mask_yes_wl, mask_no_wl = _calc_yes_and_no_masks(dataset, ps_h2, config.never_nans)
+        balanced_sample_indices = sample_indices_balanced_from_masks(config.n_samples, mask_yes_wl, mask_no_wl,
+                                                                     rnd_generator)
         dataset[SAMPLED_INDICES_KEY] = DataArray(balanced_sample_indices,
                                                  {'axes': ['y', 'x'],
                                                   'pos': np.arange(balanced_sample_indices.shape[1])}, ('axes', 'pos'),
-                                                 attrs={PATCH_SIZE_KEY: patch_size,
-                                                        N_SAMPLES_KEY: n_samples,
-                                                        NEVER_NANS_KEY: never_nans})
+                                                 attrs=asdict(config))
     else:
         balanced_sample_indices = dataset[SAMPLED_INDICES_KEY].values
 
@@ -37,13 +41,11 @@ def sample_patches_from_dataset(dataset: Dataset, patch_size: int, n_samples: in
         yield sampled
 
 
-def _needs_resampling(dataset, patch_size, n_samples, never_nans):
+def _needs_resampling(dataset, config: SamplingConfig):
     if SAMPLED_INDICES_KEY not in dataset.data_vars:
         return True
     indices_attrs = dataset[SAMPLED_INDICES_KEY].attrs
-    return indices_attrs[PATCH_SIZE_KEY] != patch_size \
-        or indices_attrs[N_SAMPLES_KEY] != n_samples \
-        or indices_attrs[NEVER_NANS_KEY] != never_nans
+    return indices_attrs != asdict(config)
 
 
 def _calc_yes_and_no_masks(dataset, ps_h2, never_nans):
