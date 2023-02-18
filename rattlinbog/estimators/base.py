@@ -54,6 +54,10 @@ class LogSink(Protocol):
     def add_image(self, tag, img_tensor, global_step=None):
         ...
 
+    @abstractmethod
+    def add_images(self, tag, img_tensor, global_step=None):
+        ...
+
 
 @dataclass
 class Validation:

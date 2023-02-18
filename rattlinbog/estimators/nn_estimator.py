@@ -48,9 +48,9 @@ class NNEstimator(ScoreableEstimator, ABC):
         estimated_len = getattr(X, 'estimated_len', None)
         total = estimated_len // self.batch_size if estimated_len else None
         for step, (x_batch, y_batch) in tqdm(enumerate(dataloader), "fitting", total):
-            loss = self._optimization_step(optimizer, x_batch, y_batch, model_device)
+            loss, estimate = self._optimization_step(optimizer, x_batch, y_batch, model_device)
             if self.log_cfg:
-                self._log_progress(x_batch, y_batch, loss, step)
+                self._log_progress(x_batch, y_batch, estimate, loss, step)
 
         self.is_fitted_ = True
         return self
@@ -61,9 +61,9 @@ class NNEstimator(ScoreableEstimator, ABC):
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        return loss
+        return loss, estimate
 
-    def _log_progress(self, x_batch, y_batch, loss, step):
+    def _log_progress(self, x_batch, y_batch, estimate, loss, step):
         self.log_cfg.log_sink.add_scalar("loss", loss.item(), step)
         if self._should_log(self.log_cfg.validation, step):
             for n, s in self.score(x_batch.numpy(), y_batch.numpy()).items():
@@ -74,6 +74,7 @@ class NNEstimator(ScoreableEstimator, ABC):
                 self.log_cfg.validation.log_sink.add_scalar(n, s, step)
 
         if self._should_log(self.log_cfg.image, step):
+            self.log_cfg.log_sink.add_images("images", estimate, step)
             self.log_cfg.image.log_sink.add_image("images", self.log_cfg.image.image_producer(self), step)
 
     @staticmethod

@@ -179,19 +179,22 @@ def assert_received_log_at_correct_frequency(train_sink, valid_sink, n_training_
     assert valid_sink.received_scalar_steps['VAL_SCORE'] == list(range(0, n_training_steps, valid_freq))
 
 
-def test_log_image_at_specified_frequency(nn_estimator_params, nn_estimator_logging, generated_dataset, log_sink):
+def test_log_image_at_specified_frequency(nn_estimator_params, nn_estimator_logging, generated_dataset):
     def image_fn(estimator: Estimator) -> NDArray:
         return np.zeros((1, 8, 8))
 
-    nn_estimator_logging.set_params(log_cfg=LogConfig(log_sink, image=ImageLogging(5, log_sink, image_fn)))
+    train_sink = make_log_sink()
+    valid_sink = make_log_sink()
+    nn_estimator_logging.set_params(log_cfg=LogConfig(train_sink, image=ImageLogging(5, valid_sink, image_fn)))
 
     nn_estimator_logging.fit(generated_dataset(10 * nn_estimator_params['batch_size']))
 
-    assert_received_images_at_correct_frequency(log_sink, n_training_steps=10, img_freq=5)
+    assert_received_images_at_correct_frequency(train_sink, valid_sink, n_training_steps=10, img_freq=5)
 
 
-def assert_received_images_at_correct_frequency(log_sink, n_training_steps, img_freq):
-    assert log_sink.received_image_steps['images'] == list(range(0, n_training_steps, img_freq))
+def assert_received_images_at_correct_frequency(train_sink, valid_sink, n_training_steps, img_freq):
+    assert train_sink.received_images_steps['images'] == list(range(0, n_training_steps, img_freq))
+    assert valid_sink.received_image_steps['images'] == list(range(0, n_training_steps, img_freq))
 
 
 def test_logging_sets_model_only_temporarily_in_eval_mode(
