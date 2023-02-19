@@ -16,18 +16,29 @@ class _DataArrayMapper:
     def to(self, array: DataArray) -> DataArray:
         out_dims = self._estimator.out_description.dims
         out_template = array[0, :, :].drop_vars(array.dims[0]).expand_dims(out_dims)
-        estimated = array.data.map_blocks(self._estimate_block, drop_axis=0, new_axis=0, chunks=out_template.chunks,
-                                          meta=out_template.data)
+
+        n_divs = self._estimator.out_description.num_divisions
+        y_border = min(int(array.data.chunksize[1] * 0.1), 64)
+        x_border = min(int(array.data.chunksize[2] * 0.1), 64)
+        overlap_size_y = array.data.chunksize[1] + y_border * 2
+        overlap_size_x = array.data.chunksize[2] + x_border * 2
+        y_padding, y_excess = self._calc_to_even_padding(overlap_size_y, n_divs)
+        x_padding, x_excess = self._calc_to_even_padding(overlap_size_x, n_divs)
+
+        depth = {0: 0, 1: y_padding + y_border, 2: x_padding + x_border}
+        out_chunks = tuple(out_template.data.chunksize[d] + p * 2 for d, p in depth.items())
+        estimated = array.data.map_overlap(self._estimate_block, depth=depth, boundary='reflect', allow_rechunk=False,
+                                           chunks=out_chunks, meta=out_template.data,
+                                           y_excess=y_excess, x_excess=x_excess, out_dtype=out_template.dtype)
         return out_template.copy(data=estimated)
 
-    def _estimate_block(self, block):
-        n_divs = self._estimator.out_description.num_divisions
-        y_size = block.shape[1]
-        x_size = block.shape[2]
-        y_padding = self._calc_to_even_padding(y_size, n_divs)
-        x_padding = self._calc_to_even_padding(x_size, n_divs)
-        return self._trunc_pad(self._safe_estimate(self._pad_to(block, y_padding, x_padding)),
-                               y_padding, y_size, x_padding, x_size)
+    def _estimate_block(self, block, y_excess, x_excess, out_dtype):
+        if y_excess > 0 or x_excess > 0:
+            out = np.empty((1, *block.shape[1:]), dtype=out_dtype)
+            out[..., y_excess:, x_excess:] = self._safe_estimate(block[..., y_excess:, x_excess:])
+            return out
+        else:
+            return self._safe_estimate(block)
 
     def _safe_estimate(self, x):
         with self._estimator_lock:
@@ -38,15 +49,8 @@ class _DataArrayMapper:
         power_two_n = int(np.power(2, num_divisions))
         d = int(np.ceil(size / power_two_n))
         addition = (d * power_two_n) - size
-        return (addition // 2), (addition // 2) + addition % 2
-
-    @staticmethod
-    def _pad_to(array, y_padding, x_padding):
-        return np.pad(array, ((0, 0), y_padding, x_padding), mode='reflect')
-
-    @staticmethod
-    def _trunc_pad(array, y_padding, y_size, x_padding, x_size):
-        return array[..., y_padding[0]:y_padding[0] + y_size, x_padding[0]:x_padding[0] + x_size]
+        excess = addition % 2
+        return addition // 2 + excess, excess
 
 
 def apply(estimator: Estimator, predict_kwargs: Optional[Dict] = None) -> _DataArrayMapper:
