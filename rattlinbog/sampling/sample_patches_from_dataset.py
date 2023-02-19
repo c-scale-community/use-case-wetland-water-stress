@@ -25,10 +25,10 @@ def sample_patches_from_dataset(dataset: Dataset, sample_indices: DataArray, n_d
     cfg = SamplingConfig(**sample_indices.attrs)
     ps_h2 = cfg.patch_size // 2
 
-    indices = sample_indices.values
     rnd_generator = rnd_generator or np.random.default_rng()
-    draws = rnd_generator.choice(indices.shape[1], n_draws, replace=False)
-    for i in draws:
+    draws = rnd_generator.choice(sample_indices.shape[1], n_draws, replace=False)
+    indices = sample_indices[:, draws].values
+    for i in range(n_draws):
         xy = indices[:, i]
         selected_roi = RectInt(xy[1] - ps_h2, xy[1] + ps_h2, xy[0] - ps_h2, xy[0] + ps_h2)
         sampled = dataset.isel(selected_roi.to_slice_dict()).copy()

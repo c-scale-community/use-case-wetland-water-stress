@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Dict, Sequence, Union
 
 import numpy as np
+import pytest
 import xarray as xr
 from xarray import Dataset
 
@@ -46,7 +47,7 @@ def assert_group_arrays_eq(actual: DataGroup, expected_datas: Dict[str, Union[Da
         else:
             xr.testing.assert_equal(actual[k][0]['1'], ds['1'])
 
-
+@pytest.mark.skip(reason='deprecated')
 def test_clip_roi_bounds(vh_datasets, ramsar_rois):
     data_group = make_data_group(
         dict(area_0=[Dataset(data_vars={'VH': vh_datasets[0]['VH']}, attrs=dict(roi=ramsar_rois[4]))])

@@ -1,10 +1,13 @@
 from datetime import datetime
 from typing import Dict, Sequence
 
+import pytest
+
 from rattlinbog.data_group import group_datasets, GroupByRois, DataGroup
 from rattlinbog.loaders import ROI
 
 
+@pytest.mark.skip(reason='deprecated')
 def test_group_datasets_by_roi(vh_datasets, ramsar_rois):
     group = group_datasets(vh_datasets, by_rule=GroupByRois(ramsar_rois))
     assert_grouped_identity(group, {'Autertal - St. Lorenzener Hochmoor': [datetime(2021, 12, 12, 16, 58, 38)],

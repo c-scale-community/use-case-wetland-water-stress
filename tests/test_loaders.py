@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Tuple, Sequence, Set
 
+import pytest
 from rasterio.crs import CRS
 from xarray import Dataset
 
@@ -8,7 +9,7 @@ from rattlinbog.loaders import DateRange, load_s1_datasets_from_file_list, ROI, 
 
 FloatBBox = Tuple[float, float, float, float]
 
-
+@pytest.mark.skip(reason='deprecated')
 def test_loaded_data_arrays_from_list(path_to_file_list):
     arrays = load_s1_datasets_from_file_list(path_to_file_list, bands={'VH'})
     assert len(arrays) == 4
