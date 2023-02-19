@@ -37,7 +37,8 @@ def estimator():
 def test_produce_estimates_from_validation_dataset_using_estimator(validation_source, estimator, validation_params):
     estimate = validation_source.make_estimation_using(estimator, dict(param='an arg'))
     assert estimator.received_param == 'an arg'
-    assert_arrays_eq(estimator.received_estimation_input, validation_params)
+    assert_arrays_eq(estimator.received_estimation_input,
+                     np.pad(validation_params, int(validation_params.shape[1] * 0.1), mode='reflect'))
     assert np.all(estimate == 1)
 
 

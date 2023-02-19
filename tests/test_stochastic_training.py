@@ -16,7 +16,8 @@ from xarray import Dataset
 from doubles import DelayingSplit
 from factories import make_raster
 from rattlinbog.io_xarray.store_as_compressed_zarr import store_as_compressed_zarr
-from rattlinbog.sampling.sample_patches_from_dataset import sample_patches_from_dataset, SamplingConfig
+from rattlinbog.sampling.sample_patches_from_dataset import sample_patches_from_dataset, SamplingConfig, \
+    make_balanced_sample_indices_for
 from rattlinbog.th_extensions.utils.data.streamed_xarray_dataset import StreamedXArrayDataset
 from rattlinbog.th_extensions.utils.dataset_splitters import split_to_params_and_ground_truth, PARAMS_KEY, \
     GROUND_TRUTH_KEY
@@ -76,7 +77,8 @@ def fixed_rng():
 
 @pytest.fixture
 def torch_tile_dataset(tile_dataset, fixed_rng):
-    sampled = sample_patches_from_dataset(tile_dataset, SamplingConfig(32, 19), fixed_rng)
+    indices = make_balanced_sample_indices_for(tile_dataset, SamplingConfig(32, 19), fixed_rng)
+    sampled = sample_patches_from_dataset(tile_dataset, indices)
     return StreamedXArrayDataset(sampled, split_to_params_and_ground_truth)
 
 
@@ -97,57 +99,35 @@ def splitter_with_loading_time():
 
 @pytest.fixture
 def torch_tile_dataset_with_loading_delay(tile_dataset_dummy, fixed_rng, splitter_with_loading_time):
-    sampled = sample_patches_from_dataset(tile_dataset_dummy, SamplingConfig(8, 16), fixed_rng)
+    indices = make_balanced_sample_indices_for(tile_dataset_dummy, SamplingConfig(8, 16), fixed_rng)
+    sampled = sample_patches_from_dataset(tile_dataset_dummy, indices)
     return StreamedXArrayDataset(sampled, splitter_with_loading_time)
 
 
 def test_stochastic_patch_samples_from_dataset(tile_dataset, verify_raster_as_geo_zarr, fixed_rng):
-    patches = list(sample_patches_from_dataset(tile_dataset, SamplingConfig(32, 16), fixed_rng))
+    indices = make_balanced_sample_indices_for(tile_dataset, SamplingConfig(32, 16), fixed_rng)
+    patches = list(sample_patches_from_dataset(tile_dataset, indices))
     assert len(patches) == 16
     verify_raster_as_geo_zarr(patches[0])
 
 
 def test_patch_samples_are_balanced(tile_dataset, verify_raster_as_geo_zarr, fixed_rng):
-    patches = list(sample_patches_from_dataset(tile_dataset, SamplingConfig(32, 2), fixed_rng))
+    balanced_indices = make_balanced_sample_indices_for(tile_dataset, SamplingConfig(32, 2), fixed_rng)
+    patches = list(sample_patches_from_dataset(tile_dataset, balanced_indices))
     a_has_mask_pixels = patches[0][GROUND_TRUTH_KEY].sum().values.item() > 0
     b_has_mask_pixels = patches[1][GROUND_TRUTH_KEY].sum().values.item() > 0
     assert (a_has_mask_pixels and not b_has_mask_pixels) or (b_has_mask_pixels and not a_has_mask_pixels)
 
 
-def test_patch_samples_caches_valid_indices_in_dataset(tile_dataset, fixed_rng):
-    init = PerformanceClock("init")
-    with init.measure():
-        next(iter(sample_patches_from_dataset(tile_dataset, SamplingConfig(32, 2), fixed_rng)))
-    cached = PerformanceClock("cached")
-    with cached.measure():
-        next(iter(sample_patches_from_dataset(tile_dataset, SamplingConfig(32, 2), fixed_rng)))
-
-    assert cached.total_measures < init.total_measures / 2
-
-
-@pytest.mark.parametrize('new_config', [
-    SamplingConfig(patch_size=16, n_samples=2, never_nans=False),
-    SamplingConfig(patch_size=32, n_samples=3, never_nans=False),
-    SamplingConfig(patch_size=32, n_samples=2, never_nans=True),
-])
-def test_patch_samples_invalidates_caches_appropriately(tile_dataset, new_config):
-    init = PerformanceClock("init")
-    with init.measure():
-        next(iter(sample_patches_from_dataset(tile_dataset,
-                                              SamplingConfig(patch_size=32, n_samples=2, never_nans=False))))
-    cached = PerformanceClock("cached")
-    with cached.measure():
-        next(iter(sample_patches_from_dataset(tile_dataset, new_config)))
-
-    assert cached.total_measures > init.total_measures / 2
-
-
 def test_never_sample_patches_with_nans(tile_dataset_with_nan, verify_raster_as_geo_zarr, fixed_rng):
-    patches = list(sample_patches_from_dataset(tile_dataset_with_nan,
-                                               SamplingConfig(8, 4, never_nans=False), fixed_rng))
+    indices_with_nans = make_balanced_sample_indices_for(tile_dataset_with_nan, SamplingConfig(8, 4, never_nans=False),
+                                                         fixed_rng)
+    patches = list(sample_patches_from_dataset(tile_dataset_with_nan, indices_with_nans))
     assert any(patch[PARAMS_KEY].isnull().any() for patch in patches)
-    patches = list(sample_patches_from_dataset(tile_dataset_with_nan,
-                                               SamplingConfig(8, 4, never_nans=True), fixed_rng))
+
+    indices_no_nans = make_balanced_sample_indices_for(tile_dataset_with_nan, SamplingConfig(8, 4, never_nans=True),
+                                                       fixed_rng)
+    patches = list(sample_patches_from_dataset(tile_dataset_with_nan, indices_no_nans))
     assert not any(patch[PARAMS_KEY].isnull().any() for patch in patches)
 
 
@@ -168,7 +148,8 @@ def assert_torch_batch_sizes(loader: DataLoader, expected_sizes):
 def test_interleaved_loading_and_training(tile_dataset_dummy, splitter_with_loading_time):
     splitter_with_loading_time.set_loading_time(0.1)
 
-    sampled = sample_patches_from_dataset(tile_dataset_dummy, SamplingConfig(8, 16))
+    indices = make_balanced_sample_indices_for(tile_dataset_dummy, SamplingConfig(8, 16))
+    sampled = sample_patches_from_dataset(tile_dataset_dummy, indices)
     clock_init = PerformanceClock('init')
     with clock_init.measure():
         stream = StreamedXArrayDataset(sampled, splitter_with_loading_time)
