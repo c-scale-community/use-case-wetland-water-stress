@@ -44,6 +44,11 @@ class LogSink(Protocol):
 class ValidationSource(ABC):
     @property
     @abstractmethod
+    def parameters(self) -> NDArray:
+        ...
+
+    @property
+    @abstractmethod
     def ground_truth(self) -> NDArray:
         ...
 

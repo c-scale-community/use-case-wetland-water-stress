@@ -41,14 +41,14 @@ def make_ground_truth(rnd_seed=None):
 def make_features_matching_gt(ground_truth, rnd_state=None):
     shape = ground_truth.shape
     bg = np.empty((3, *shape), dtype=np.float32)
-    bg[0, ...] = rnd_state.normal(0.2, 0.01, shape)
-    bg[1, ...] = rnd_state.normal(0.6, 0.01, shape)
-    bg[2, ...] = rnd_state.normal(0.4, 0.01, shape)
+    bg[0, ...] = rnd_state.normal(0.6, 0.01, shape)
+    bg[1, ...] = rnd_state.normal(0.7, 0.01, shape)
+    bg[2, ...] = rnd_state.normal(0.2, 0.01, shape)
 
     fg = np.empty((3, *shape), dtype=np.float32)
-    fg[0, ...] = rnd_state.normal(0.6, 0.1, shape)
+    fg[0, ...] = rnd_state.normal(0.3, 0.1, shape)
     fg[1, ...] = rnd_state.normal(0.2, 0.1, shape)
-    fg[2, ...] = rnd_state.normal(0.3, 0.1, shape)
+    fg[2, ...] = rnd_state.normal(0.6, 0.1, shape)
 
     gt_mask = ground_truth == 1
     bg[0, gt_mask] = fg[0, gt_mask]
@@ -85,7 +85,7 @@ def estimator(log_cfg):
 
 @pytest.fixture
 def sampling_cfg(estimator):
-    return SamplingConfig(patch_size=16, n_samples=200 * estimator.batch_size, never_nans=True)
+    return SamplingConfig(patch_size=16, n_samples=100 * estimator.batch_size, never_nans=True)
 
 
 @pytest.mark.skipif(not th.cuda.is_available(), reason='this test needs a cuda device')
@@ -94,17 +94,16 @@ def test_train_wetland_estimator(estimator, train_ds, sampling_cfg, fixed_seed, 
     trained_model = train(estimator, train_ds, sampling_cfg, np.random.default_rng(fixed_seed))
 
     if should_plot:
-        _plot_results(trained_model, train_ds, train_log, valid_ds, valid_log)
+        _plot_results(train_log, valid_ds, valid_log)
 
     assert trained_model.is_fitted_
     assert valid_log.received_last_score['F1'] > 0.95
 
 
-def _plot_results(trained_model, train_ds, train_log, valid_ds, valid_log):
-    _, axes = plt.subplots(ncols=3, nrows=1, figsize=(10, 5))
+def _plot_results(train_log, valid_ds, valid_log):
+    _, axes = plt.subplots(ncols=2, nrows=1, figsize=(10, 5))
     axes[0].imshow(valid_ds[GROUND_TRUTH_KEY])
-    axes[1].imshow(valid_log.received_last_image['images'][0])
-    axes[2].imshow(trained_model.predict(train_ds[PARAMS_KEY].values)[0])
+    axes[1].imshow(valid_log.received_last_image['images'].permute(1, 2, 0))
     plt.show()
     plt.plot(train_log.received_loss)
     plt.show()

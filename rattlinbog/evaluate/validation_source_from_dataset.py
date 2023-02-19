@@ -13,6 +13,10 @@ class ValidationSourceFromDataset(ValidationSource):
         self.ds = ds
 
     @property
+    def parameters(self) -> NDArray:
+        return self.ds[PARAMS_KEY].values
+
+    @property
     def ground_truth(self) -> NDArray:
         return self.ds[GROUND_TRUTH_KEY].values
 

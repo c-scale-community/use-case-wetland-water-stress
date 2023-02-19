@@ -103,8 +103,8 @@ def make_log_sink():
 
 
 @pytest.fixture
-def valid_src(one_output):
-    return ValidationSourceStub(one_output)
+def valid_src(zero_input, one_output):
+    return ValidationSourceStub(zero_input, one_output)
 
 
 def test_unet_estimator_is_sklearn_compatible(nn_estimator, nn_estimator_params):

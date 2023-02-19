@@ -109,8 +109,13 @@ class DelayingSplit:
 
 
 class ValidationSourceStub(ValidationSource):
-    def __init__(self, gt):
+    def __init__(self, ps, gt):
+        self.ps = ps
         self.gt = gt
+
+    @property
+    def parameters(self) -> NDArray:
+        return self.ps
 
     @property
     def ground_truth(self) -> NDArray:
