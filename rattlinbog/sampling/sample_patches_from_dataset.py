@@ -20,12 +20,15 @@ class SamplingConfig:
     never_nans: Optional[bool] = False
 
 
-def sample_patches_from_dataset(dataset: Dataset, sample_indices: DataArray) -> Iterator[Dataset]:
+def sample_patches_from_dataset(dataset: Dataset, sample_indices: DataArray, n_draws: int,
+                                rnd_generator: Optional[Generator] = None) -> Iterator[Dataset]:
     cfg = SamplingConfig(**sample_indices.attrs)
     ps_h2 = cfg.patch_size // 2
 
     indices = sample_indices.values
-    for i in range(indices.shape[1]):
+    rnd_generator = rnd_generator or np.random.default_rng()
+    draws = rnd_generator.choice(indices.shape[1], n_draws, replace=False)
+    for i in draws:
         xy = indices[:, i]
         selected_roi = RectInt(xy[1] - ps_h2, xy[1] + ps_h2, xy[0] - ps_h2, xy[0] + ps_h2)
         sampled = dataset.isel(selected_roi.to_slice_dict()).copy()
@@ -58,10 +61,7 @@ def make_balanced_sample_indices_for(dataset: Dataset, config: SamplingConfig,
     choices_no_wl = choices_no_wl[:n_samples - (n_samples // 2)]
     indices = np.concatenate([indices_yes_wl[:, choices_yes_wl],
                               indices_no_wl[:, choices_no_wl]], axis=1)
-    shuffled_indices = np.arange(n_samples)
-    rnd_generator.shuffle(shuffled_indices)
-    return DataArray(indices[:, shuffled_indices], {'axes': ['y', 'x'],
-                                                    'pos': np.arange(indices.shape[1])}, ('axes', 'pos'),
+    return DataArray(indices, {'axes': ['y', 'x'], 'pos': np.arange(indices.shape[1])}, ('axes', 'pos'),
                      attrs=asdict(config))
 
 

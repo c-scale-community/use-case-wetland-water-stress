@@ -14,7 +14,7 @@ def train(estimator: NNEstimator, train_ds: Dataset, sampling_cfg: SamplingConfi
           rnd_generator: Optional[Generator] = None):
     sample_indices = make_balanced_sample_indices_for(train_ds, sampling_cfg, rnd_generator)
     array_stream = StreamedXArrayDataset(
-        sample_patches_from_dataset(train_ds, sample_indices),
+        sample_patches_from_dataset(train_ds, sample_indices, sampling_cfg.n_samples, rnd_generator),
         split_to_params_and_ground_truth, estimator.batch_size * 2, sampling_cfg.n_samples)
     estimator.fit(array_stream)
     return estimator
