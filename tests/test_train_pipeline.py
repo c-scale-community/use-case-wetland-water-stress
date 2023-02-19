@@ -12,7 +12,7 @@ from factories import make_raster
 from rattlinbog.estimators.wetland_classifier import WetlandClassifier
 from rattlinbog.pipeline.factory_functions import make_validation_log_cfg
 from rattlinbog.pipeline.train import train
-from rattlinbog.sampling.sample_patches_from_dataset import SamplingConfig
+from rattlinbog.sampling.sample_patches_from_dataset import SamplingConfig, make_balanced_sample_indices_for
 from rattlinbog.th_extensions.nn.unet import UNet
 from rattlinbog.th_extensions.utils.dataset_splitters import PARAMS_KEY, GROUND_TRUTH_KEY
 
@@ -82,16 +82,20 @@ def estimator(log_cfg):
     unet = UNet(3, [16, 32], 1).to(device=th.device('cuda'))
     return WetlandClassifier(unet, 16, log_cfg)
 
+@pytest.fixture
+def n_draws(estimator):
+    return 100 * estimator.batch_size
 
 @pytest.fixture
-def sampling_cfg(estimator):
-    return SamplingConfig(patch_size=16, n_samples=100 * estimator.batch_size, never_nans=True)
+def sampling_indices(train_ds, n_draws, fixed_seed):
+    cfg = SamplingConfig(patch_size=16, n_samples=n_draws, never_nans=True)
+    return make_balanced_sample_indices_for(train_ds, cfg, np.random.default_rng(fixed_seed))
 
 
 @pytest.mark.skipif(not th.cuda.is_available(), reason='this test needs a cuda device')
-def test_train_wetland_estimator(estimator, train_ds, sampling_cfg, fixed_seed, valid_log, train_log, valid_ds,
-                                 should_plot):
-    trained_model = train(estimator, train_ds, sampling_cfg, np.random.default_rng(fixed_seed))
+def test_train_wetland_estimator(estimator, train_ds, sampling_indices, valid_log, train_log, valid_ds, n_draws,
+                                 should_plot, fixed_seed):
+    trained_model = train(estimator, train_ds, sampling_indices, n_draws, np.random.default_rng(fixed_seed))
 
     if should_plot:
         _plot_results(train_log, valid_ds, valid_log)
