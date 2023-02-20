@@ -2,7 +2,6 @@ from dataclasses import dataclass, asdict
 from typing import Optional, Iterator
 
 import numpy as np
-from numpy._typing import NDArray
 from numpy.random import Generator
 from skimage.morphology import binary_dilation
 from xarray import Dataset, DataArray
@@ -61,8 +60,11 @@ def make_balanced_sample_indices_for(dataset: Dataset, config: SamplingConfig,
     choices_no_wl = choices_no_wl[:n_samples - (n_samples // 2)]
     indices = np.concatenate([indices_yes_wl[:, choices_yes_wl],
                               indices_no_wl[:, choices_no_wl]], axis=1)
-    return DataArray(indices, {'axes': ['y', 'x'], 'pos': np.arange(indices.shape[1])}, ('axes', 'pos'),
-                     attrs=asdict(config))
+    idc_coords = dataset.isel(y=indices[0], x=indices[1]).coords
+    return DataArray(indices,
+                     {'axes': ['y', 'x'],
+                      'y': ('pos', idc_coords['y'].data),
+                      'x': ('pos', idc_coords['x'].data)}, ('axes', 'pos'), attrs=asdict(config))
 
 
 def _calc_yes_and_no_masks(dataset, ps_h2, never_nans):
