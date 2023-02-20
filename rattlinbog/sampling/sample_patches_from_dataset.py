@@ -6,6 +6,7 @@ from numpy.random import Generator
 from skimage.morphology import binary_dilation
 from xarray import Dataset, DataArray
 
+from rattlinbog.geometry.rect_geo import RectGeo
 from rattlinbog.geometry.rect_int import RectInt
 from rattlinbog.th_extensions.utils.dataset_splitters import GROUND_TRUTH_KEY, PARAMS_KEY
 
@@ -22,15 +23,21 @@ class SamplingConfig:
 def sample_patches_from_dataset(dataset: Dataset, sample_indices: DataArray, n_draws: int,
                                 rnd_generator: Optional[Generator] = None) -> Iterator[Dataset]:
     cfg = SamplingConfig(**sample_indices.attrs)
-    ps_h2 = cfg.patch_size // 2
+
+    x_res, y_res = dataset.rio.resolution()
+    ps_h2_y = cfg.patch_size // 2 * y_res
+    ps_h2_x = cfg.patch_size // 2 * x_res
 
     rnd_generator = rnd_generator or np.random.default_rng()
     draws = rnd_generator.choice(sample_indices.shape[1], n_draws, replace=False)
-    indices = sample_indices[:, draws].values
+    indices = sample_indices[:, draws]
     for i in range(n_draws):
-        xy = indices[:, i]
-        selected_roi = RectInt(xy[1] - ps_h2, xy[1] + ps_h2, xy[0] - ps_h2, xy[0] + ps_h2)
-        sampled = dataset.isel(selected_roi.to_slice_dict()).copy()
+        yx = indices.pos[i]
+        selected_roi = RectGeo(yx.y.item() - ps_h2_y,
+                               yx.y.item() + ps_h2_y - y_res,
+                               yx.x.item() - ps_h2_x,
+                               yx.x.item() + ps_h2_x - x_res)
+        sampled = dataset.sel(selected_roi.to_slice_dict()).copy()
         sampled.attrs['name'] = f"sample_{i}"
         yield sampled
 
@@ -60,7 +67,7 @@ def make_balanced_sample_indices_for(dataset: Dataset, config: SamplingConfig,
     choices_no_wl = choices_no_wl[:n_samples - (n_samples // 2)]
     indices = np.concatenate([indices_yes_wl[:, choices_yes_wl],
                               indices_no_wl[:, choices_no_wl]], axis=1)
-    idc_coords = dataset.isel(y=indices[0], x=indices[1]).coords
+    idc_coords = dataset[GROUND_TRUTH_KEY].load().isel(y=indices[0], x=indices[1]).coords
     return DataArray(indices,
                      {'axes': ['y', 'x'],
                       'y': ('pos', idc_coords['y'].data),
