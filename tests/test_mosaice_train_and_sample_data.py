@@ -3,7 +3,8 @@ import pytest
 from xarray import Dataset
 
 from rattlinbog.io_xarray.concatenate import concatenate_training_datasets, concatenate_indices_dataset
-from rattlinbog.sampling.sample_patches_from_dataset import SamplingConfig, make_balanced_sample_indices_for
+from rattlinbog.sampling.sample_patches_from_dataset import SamplingConfig, make_balanced_sample_indices_for, \
+    sample_patches_from_dataset
 from rattlinbog.th_extensions.utils.dataset_splitters import PARAMS_KEY, GROUND_TRUTH_KEY
 from tests.helpers.factories import make_raster
 
@@ -93,3 +94,11 @@ def test_concatenate_two_indices_dataset(indices_west_zarr, indices_east_zarr, i
     indices = concatenate_indices_dataset(indices_west_zarr, indices_east_zarr)
     assert_coordinates(indices.x.values, np.concatenate([indices_west.x.values, indices_east.x.values]))
     assert_coordinates(indices.y.values, np.concatenate([indices_west.y.values, indices_east.y.values]))
+
+
+def test_sampling_from_concatenated_data_and_indices(train_west, train_east, indices_west_zarr, indices_east_zarr):
+    train = concatenate_training_datasets(train_west, train_east)
+    indices = concatenate_indices_dataset(indices_west_zarr, indices_east_zarr)
+    patches = list(sample_patches_from_dataset(train, indices, 16))
+    assert len(patches) == 16
+
