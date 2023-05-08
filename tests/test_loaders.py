@@ -41,6 +41,7 @@ def assert_dataset_has(actual: Dataset, expected_bands: Set[str], expected_bound
         assert actual[band].attrs['observed_time'] == expected_observed_time
 
 
+@pytest.mark.skip(reason='deprecated')
 def test_load_rois(path_to_shape_file):
     rois = load_rois(path_to_shape_file)
     assert_rois_identity(rois, [

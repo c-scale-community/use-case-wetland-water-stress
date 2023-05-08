@@ -2,11 +2,14 @@ import numpy as np
 from xarray import DataArray
 
 
-def make_raster(values, param_dim=None):
+def make_raster(values, param_dim=None, coords=None):
+    coords = coords or {}
+    coords['y'] = coords.get('y', np.arange(values.shape[-2], 0, -1))
+    coords['x'] = coords.get('x', np.arange(values.shape[-1]))
     values = np.asarray(values)
     coords = {
-        'y': ('y', np.arange(values.shape[-2], 0, -1)),
-        'x': ('x', np.arange(values.shape[-1])),
+        'y': ('y', coords['y']),
+        'x': ('x', coords['x']),
         'spatial_ref': DataArray(0, attrs={'GeoTransform': '-0.5 1.0 0.0 -0.5 0.0 -1.0'})
     }
     dims = ('y', 'x')

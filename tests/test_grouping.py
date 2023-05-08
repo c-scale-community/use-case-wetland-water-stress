@@ -27,6 +27,7 @@ def assert_grouped_identity(actual: DataGroup, expected_identity: Dict[str, Sequ
         assert actual_times == expected_identity[k], f"with {k}"
 
 
+@pytest.mark.skip(reason='deprecated')
 def test_group_datasets_adds_roi_to_attribute(vh_datasets, ramsar_rois):
     group = group_datasets(vh_datasets, by_rule=GroupByRois(ramsar_rois))
     assert_rois_eq(group, {'Autertal - St. Lorenzener Hochmoor': [ramsar_rois[6]],

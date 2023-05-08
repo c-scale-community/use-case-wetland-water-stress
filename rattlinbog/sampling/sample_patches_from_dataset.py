@@ -7,7 +7,6 @@ from skimage.morphology import binary_dilation
 from xarray import Dataset, DataArray
 
 from rattlinbog.geometry.rect_geo import RectGeo
-from rattlinbog.geometry.rect_int import RectInt
 from rattlinbog.th_extensions.utils.dataset_splitters import GROUND_TRUTH_KEY, PARAMS_KEY
 
 SAMPLED_INDICES_KEY = 'sampled_indices'
@@ -17,6 +16,7 @@ SAMPLED_INDICES_KEY = 'sampled_indices'
 class SamplingConfig:
     patch_size: int
     n_samples: int
+    oversampling_size: Optional[int] = 2
     never_nans: Optional[bool] = False
 
 
@@ -62,7 +62,8 @@ def make_balanced_sample_indices_for(dataset: Dataset, config: SamplingConfig,
     choices_no_wl = np.arange(indices_no_wl.shape[1])
     rnd_generator.shuffle(choices_no_wl)
 
-    n_samples = config.n_samples
+    n_samples = min(mask_yes_wl.sum() * config.oversampling_size, config.n_samples)
+
     choices_yes_wl = choices_yes_wl[:n_samples // 2]
     choices_no_wl = choices_no_wl[:n_samples - (n_samples // 2)]
     indices = np.concatenate([indices_yes_wl[:, choices_yes_wl],
