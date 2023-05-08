@@ -1,11 +1,8 @@
-from pathlib import Path
-from typing import Tuple
-
 import numpy as np
 import pytest
-import xarray as xr
-from xarray import Dataset, DataArray
+from xarray import Dataset
 
+from rattlinbog.io_xarray.concatenate import concatenate_training_datasets, concatenate_indices_dataset
 from rattlinbog.sampling.sample_patches_from_dataset import SamplingConfig, make_balanced_sample_indices_for
 from rattlinbog.th_extensions.utils.dataset_splitters import PARAMS_KEY, GROUND_TRUTH_KEY
 from tests.helpers.factories import make_raster
@@ -44,10 +41,6 @@ def make_train_dataset(ys, xs):
     })
 
 
-def concatenate_training_datasets(*zarrs: Tuple[Path, ...]) -> Dataset:
-    return xr.open_mfdataset(zarrs, engine='zarr', combine='by_coords', chunks={})
-
-
 def test_concatenate_two_training_datasets(train_west, train_east):
     train = concatenate_training_datasets(train_west, train_east)
     assert_coordinates(train.x.values, np.arange(0, 200))
@@ -68,11 +61,6 @@ def test_selecting_from_offset_produces_zero_size_patch(train_west, train_offset
     train = concatenate_training_datasets(train_west, train_offset_by_one_east)
     out_of_bounds = train.sel(y=slice(30, 40), x=slice(150, 160))
     assert out_of_bounds.dims['y'] == 0 and out_of_bounds.dims['x'] == 0
-
-
-def concatenate_indices_dataset(*zarrs: Tuple[Path, ...]) -> DataArray:
-    return xr.open_mfdataset(zarrs, engine='zarr', concat_dim='pos', combine='nested', chunks={}).to_array()
-
 
 
 @pytest.fixture
