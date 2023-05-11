@@ -10,6 +10,6 @@ def preprocess_hparams(da: DataArray) -> DataArray:
                                 np.sqrt(c1 ** 2 + s1 ** 2).expand_dims(parameter=['SIG0-HPAR-AMP']),
                                 np.arctan2(s1, c1).expand_dims(parameter=['SIG0-HPAR-PHS'])], dim='parameter')
     nobs = da_w_amp_a_phs.sel(parameter='SIG0-HPAR-NOBS')
-    mean = da_w_amp_a_phs.weighted(nobs).mean(dim='orbit', skipna=True, keep_attrs=True)
+    mean = da_w_amp_a_phs.weighted(nobs.fillna(0)).mean(dim='orbit', skipna=True, keep_attrs=True)
     mean.loc['SIG0-HPAR-NOBS', ...] = nobs.sum('orbit', skipna=True, keep_attrs=True)
     return mean.assign_coords(spatial_ref=da.coords['spatial_ref']).astype(np.float32)

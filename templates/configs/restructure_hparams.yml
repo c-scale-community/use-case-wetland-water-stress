@@ -1,4 +1,4 @@
 !Restructure
-chunk_size: 200
+chunk_size: 500
 rois:
   - [0, 0, 15000, 15000]
