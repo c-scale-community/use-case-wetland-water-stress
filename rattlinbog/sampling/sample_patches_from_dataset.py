@@ -1,4 +1,4 @@
-from dataclasses import dataclass, asdict
+from dataclasses import asdict
 from typing import Optional, Iterator
 
 import numpy as np
@@ -6,18 +6,11 @@ from numpy.random import Generator
 from skimage.morphology import binary_dilation
 from xarray import Dataset, DataArray
 
+from rattlinbog.config import SamplingConfig
 from rattlinbog.geometry.rect_geo import RectGeo
 from rattlinbog.th_extensions.utils.dataset_splitters import GROUND_TRUTH_KEY, PARAMS_KEY
 
 SAMPLED_INDICES_KEY = 'sampled_indices'
-
-
-@dataclass
-class SamplingConfig:
-    patch_size: int
-    n_samples: int
-    oversampling_size: Optional[int] = 2
-    never_nans: Optional[bool] = False
 
 
 def sample_patches_from_dataset(dataset: Dataset, sample_indices: DataArray, n_draws: int,

@@ -1,0 +1,5 @@
+!Sampling
+patch_size: 64
+n_samples: 100000
+oversampling_size: 2
+never_nans: True

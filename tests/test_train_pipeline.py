@@ -12,7 +12,8 @@ from factories import make_raster
 from rattlinbog.estimators.wetland_classifier import WetlandClassifier
 from rattlinbog.pipeline.factory_functions import make_validation_log_cfg
 from rattlinbog.pipeline.train import train
-from rattlinbog.sampling.sample_patches_from_dataset import SamplingConfig, make_balanced_sample_indices_for
+from rattlinbog.sampling.sample_patches_from_dataset import make_balanced_sample_indices_for
+from rattlinbog.config import SamplingConfig
 from rattlinbog.th_extensions.nn.unet import UNet
 from rattlinbog.th_extensions.utils.dataset_splitters import PARAMS_KEY, GROUND_TRUTH_KEY
 

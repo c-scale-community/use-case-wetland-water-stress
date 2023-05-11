@@ -3,8 +3,9 @@ import pytest
 from xarray import Dataset
 
 from rattlinbog.io_xarray.concatenate import concatenate_training_datasets, concatenate_indices_dataset
-from rattlinbog.sampling.sample_patches_from_dataset import SamplingConfig, make_balanced_sample_indices_for, \
+from rattlinbog.sampling.sample_patches_from_dataset import make_balanced_sample_indices_for, \
     sample_patches_from_dataset
+from rattlinbog.config import SamplingConfig
 from rattlinbog.th_extensions.utils.dataset_splitters import PARAMS_KEY, GROUND_TRUTH_KEY
 from tests.helpers.factories import make_raster
 
