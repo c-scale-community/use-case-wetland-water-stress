@@ -1,3 +1,4 @@
+from dataclasses import asdict
 from typing import Optional, Iterator
 
 import numpy as np
@@ -5,45 +6,66 @@ from numpy.random import Generator
 from skimage.morphology import binary_dilation
 from xarray import Dataset, DataArray
 
-from rattlinbog.geometry.rect_int import RectInt
+from rattlinbog.config import SamplingConfig
+from rattlinbog.geometry.rect_geo import RectGeo
 from rattlinbog.th_extensions.utils.dataset_splitters import GROUND_TRUTH_KEY, PARAMS_KEY
 
 SAMPLED_INDICES_KEY = 'sampled_indices'
-PATCH_SIZE_KEY = 'patch_size'
-N_SAMPLES_KEY = 'n_samples'
-NEVER_NANS_KEY = 'never_nans'
 
 
-def sample_patches_from_dataset(dataset: Dataset, patch_size: int, n_samples: int, never_nans: Optional[bool] = False,
+def sample_patches_from_dataset(dataset: Dataset, sample_indices: DataArray, n_draws: int,
                                 rnd_generator: Optional[Generator] = None) -> Iterator[Dataset]:
-    ps_h2 = patch_size // 2
-    if _needs_resampling(dataset, patch_size, n_samples, never_nans):
-        mask_yes_wl, mask_no_wl = _calc_yes_and_no_masks(dataset, ps_h2, never_nans)
-        balanced_sample_indices = sample_indices_balanced_from_masks(n_samples, mask_yes_wl, mask_no_wl, rnd_generator)
-        dataset[SAMPLED_INDICES_KEY] = DataArray(balanced_sample_indices,
-                                                 {'axes': ['y', 'x'],
-                                                  'pos': np.arange(balanced_sample_indices.shape[1])}, ('axes', 'pos'),
-                                                 attrs={PATCH_SIZE_KEY: patch_size,
-                                                        N_SAMPLES_KEY: n_samples,
-                                                        NEVER_NANS_KEY: never_nans})
-    else:
-        balanced_sample_indices = dataset[SAMPLED_INDICES_KEY].values
+    cfg = SamplingConfig(**sample_indices.attrs)
 
-    for i in range(balanced_sample_indices.shape[1]):
-        xy = balanced_sample_indices[:, i]
-        selected_roi = RectInt(xy[1] - ps_h2, xy[1] + ps_h2, xy[0] - ps_h2, xy[0] + ps_h2)
-        sampled = dataset.isel(selected_roi.to_slice_dict()).copy()
+    x_res, y_res = dataset.rio.resolution()
+    ps_h2_y = cfg.patch_size // 2 * y_res
+    ps_h2_x = cfg.patch_size // 2 * x_res
+
+    rnd_generator = rnd_generator or np.random.default_rng()
+    draws = rnd_generator.choice(sample_indices.shape[1], n_draws, replace=False)
+    indices = sample_indices[:, draws]
+    for i in range(n_draws):
+        yx = indices.pos[i]
+        selected_roi = RectGeo(yx.y.item() - ps_h2_y,
+                               yx.y.item() + ps_h2_y - y_res,
+                               yx.x.item() - ps_h2_x,
+                               yx.x.item() + ps_h2_x - x_res)
+        sampled = dataset.sel(selected_roi.to_slice_dict()).copy()
         sampled.attrs['name'] = f"sample_{i}"
         yield sampled
 
 
-def _needs_resampling(dataset, patch_size, n_samples, never_nans):
+def _needs_resampling(dataset, config: SamplingConfig):
     if SAMPLED_INDICES_KEY not in dataset.data_vars:
         return True
     indices_attrs = dataset[SAMPLED_INDICES_KEY].attrs
-    return indices_attrs[PATCH_SIZE_KEY] != patch_size \
-        or indices_attrs[N_SAMPLES_KEY] != n_samples \
-        or indices_attrs[NEVER_NANS_KEY] != never_nans
+    return indices_attrs != asdict(config)
+
+
+def make_balanced_sample_indices_for(dataset: Dataset, config: SamplingConfig,
+                                     rnd_generator: Optional[Generator] = None) -> DataArray:
+    ps_h2 = config.patch_size // 2
+    mask_yes_wl, mask_no_wl = _calc_yes_and_no_masks(dataset, ps_h2, config.never_nans)
+
+    rnd_generator = rnd_generator or np.random.default_rng()
+    indices_yes_wl = np.stack(np.nonzero(mask_yes_wl))
+    indices_no_wl = np.stack(np.nonzero(mask_no_wl))
+    choices_yes_wl = np.arange(indices_yes_wl.shape[1])
+    rnd_generator.shuffle(choices_yes_wl)
+    choices_no_wl = np.arange(indices_no_wl.shape[1])
+    rnd_generator.shuffle(choices_no_wl)
+
+    n_samples = min(mask_yes_wl.sum() * config.oversampling_size, config.n_samples)
+
+    choices_yes_wl = choices_yes_wl[:n_samples // 2]
+    choices_no_wl = choices_no_wl[:n_samples - (n_samples // 2)]
+    indices = np.concatenate([indices_yes_wl[:, choices_yes_wl],
+                              indices_no_wl[:, choices_no_wl]], axis=1)
+    idc_coords = dataset[GROUND_TRUTH_KEY].load().isel(y=indices[0], x=indices[1]).coords
+    return DataArray(indices,
+                     {'axes': ['y', 'x'],
+                      'y': ('pos', idc_coords['y'].data),
+                      'x': ('pos', idc_coords['x'].data)}, ('axes', 'pos'), attrs=asdict(config))
 
 
 def _calc_yes_and_no_masks(dataset, ps_h2, never_nans):
@@ -57,23 +79,6 @@ def _calc_yes_and_no_masks(dataset, ps_h2, never_nans):
     _mask_border(mask_yes_wl, ps_h2)
     _mask_border(mask_no_wl, ps_h2)
     return mask_yes_wl, mask_no_wl
-
-
-def sample_indices_balanced_from_masks(n_samples, mask_yes_wl, mask_no_wl, rnd_generator: Optional[Generator] = None):
-    rnd_generator = rnd_generator or np.random.default_rng()
-    indices_yes_wl = np.stack(np.nonzero(mask_yes_wl))
-    indices_no_wl = np.stack(np.nonzero(mask_no_wl))
-    choices_yes_wl = np.arange(indices_yes_wl.shape[1])
-    rnd_generator.shuffle(choices_yes_wl)
-    choices_no_wl = np.arange(indices_no_wl.shape[1])
-    rnd_generator.shuffle(choices_no_wl)
-    choices_yes_wl = choices_yes_wl[:n_samples // 2]
-    choices_no_wl = choices_no_wl[:n_samples - (n_samples // 2)]
-    balanced_sample_indices = np.concatenate([indices_yes_wl[:, choices_yes_wl],
-                                              indices_no_wl[:, choices_no_wl]], axis=1)
-    shuffled_indices = np.arange(n_samples)
-    rnd_generator.shuffle(shuffled_indices)
-    return balanced_sample_indices[:, shuffled_indices]
 
 
 def _mask_border(array, border_width):

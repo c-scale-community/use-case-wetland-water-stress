@@ -1,22 +1,27 @@
 import time
 from collections import defaultdict
+from typing import Optional, Dict
 
 import numpy as np
 import torch as th
-from numpy._typing import NDArray
+from numpy.typing import NDArray
 
-from rattlinbog.estimators.base import Estimator, Score, EstimateDescription, LogSink, ScoreableEstimator
+from rattlinbog.estimators.base import Estimator, Score, EstimateDescription, LogSink, ValidationSource
 from rattlinbog.estimators.nn_estimator import NNEstimator
 from rattlinbog.th_extensions.utils.dataset_splitters import split_to_params_and_ground_truth
 
 
 # noinspection PyPep8Naming,PyAttributeOutsideInit
-class AlwaysTrue(Estimator):
+class AlwaysTrueEstimatorSpy(Estimator):
     def __init__(self):
         self.num_predictions = 0
+        self.received_estimation_input = None
+        self.received_param = None
 
-    def predict(self, X: NDArray) -> NDArray:
+    def predict(self, X: NDArray, param: Optional[str] = None) -> NDArray:
         self.num_predictions += 1
+        self.received_estimation_input = X
+        self.received_param = param
         return np.ones((1,) + X.shape[1:])
 
     def score(self, X: NDArray, y: NDArray) -> Score:
@@ -54,7 +59,7 @@ class MultiClassEstimator(Estimator):
 
 
 class NNEstimatorStub(NNEstimator):
-    def score_estimate(self, estimate: NDArray, ground_truth: NDArray) -> Score:
+    def _score_estimate(self, estimate: NDArray, ground_truth: NDArray) -> Score:
         return {'SCORE_A': 0.42, 'SCORE_B': 42}
 
     @property
@@ -76,12 +81,19 @@ class LogSpy(LogSink):
     def __init__(self):
         self.received_scalar_steps = defaultdict(list)
         self.received_image_steps = defaultdict(list)
+        self.received_last_score = dict()
+        self.received_last_image = dict()
+        self.received_loss = []
 
     def add_scalar(self, tag, scalar_value, global_step=None):
         self.received_scalar_steps[tag].append(global_step)
+        self.received_last_score[tag] = scalar_value
+        if tag == 'loss':
+            self.received_loss.append(scalar_value)
 
     def add_image(self, tag, img_tensor, global_step=None):
         self.received_image_steps[tag].append(global_step)
+        self.received_last_image[tag] = img_tensor
 
 
 class DelayingSplit:
@@ -96,23 +108,19 @@ class DelayingSplit:
         return split_to_params_and_ground_truth(*args, **kwargs)
 
 
-class ScoreableEstimatorSpy(ScoreableEstimator):
-    def __init__(self):
-        self.returned_estimate = np.zeros((1, 32, 32))
-        self.returned_loss = 0.042
-        self.returned_score = {'A': 42, 'B': 0.42}
-        self.scorer_received = None
-
-    def predict(self, X: NDArray) -> NDArray:
-        return self.returned_estimate
-
-    def loss_for_estimate(self, estimate: NDArray, ground_truth: NDArray) -> float:
-        return self.returned_loss
-
-    def score_estimate(self, estimate: NDArray, ground_truth: NDArray) -> Score:
-        self.scorer_received = (estimate, ground_truth)
-        return self.returned_score
+class ValidationSourceStub(ValidationSource):
+    def __init__(self, ps, gt):
+        self.ps = ps
+        self.gt = gt
 
     @property
-    def out_description(self) -> EstimateDescription:
-        return EstimateDescription({'classes': ['yes']}, 0)
+    def parameters(self) -> NDArray:
+        return self.ps
+
+    @property
+    def ground_truth(self) -> NDArray:
+        return self.gt
+
+    def make_estimation_using(self, model: Estimator, estimation_kwargs: Optional[Dict] = None):
+        assert model is not None
+        return self.gt

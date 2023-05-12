@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from assertions import assert_arrays_identical
-from doubles import AlwaysTrue, NNPredictorStub, MultiClassEstimator
+from doubles import AlwaysTrueEstimatorSpy, NNPredictorStub, MultiClassEstimator
 from factories import make_raster
 from rattlinbog.estimators.apply import apply
 from rattlinbog.th_extensions.nn.unet import UNet
@@ -10,7 +10,7 @@ from rattlinbog.th_extensions.nn.unet import UNet
 
 @pytest.fixture
 def estimate_always_true():
-    return AlwaysTrue()
+    return AlwaysTrueEstimatorSpy()
 
 
 @pytest.fixture
@@ -32,6 +32,11 @@ def test_applying_classification_estimator_to_data_array_chunks(estimate_always_
 def test_estimator_is_called_once_per_chunk(estimate_always_true):
     apply(estimate_always_true).to(make_raster(np.zeros((2, 4, 4))).chunk(2)).compute()
     assert estimate_always_true.num_predictions == 4
+
+
+def test_pass_kwargs_to_estimator_predict_fn(estimate_always_true):
+    apply(estimate_always_true, dict(param='some arg')).to(make_raster(np.zeros((2, 4, 4))).chunk(2)).compute()
+    assert estimate_always_true.received_param == 'some arg'
 
 
 def test_estimate_multiple_classes(estimate_multiple_classes):

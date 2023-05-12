@@ -57,5 +57,5 @@ if __name__ == '__main__':
     parser.add_argument("dst_root", help="Root path of destination file dataset", type=Path)
     parser.add_argument("config", help="Config file", type=Path)
     args = parser.parse_args()
-    config = yaml.safe_load(args.config.read_text())
-    restructure(args.tile, args.param_root, args.mask_root, args.dst_root, config)
+    cfg = yaml.safe_load(args.config.read_text())
+    restructure(args.tile, args.param_root, args.mask_root, args.dst_root, cfg)

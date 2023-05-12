@@ -57,7 +57,6 @@ def score_first_order(zero_order: ClassScore0th) -> ClassScore1st:
     tnr[no_n] = 0.0
     fpr[no_n] = 0.0
 
-
     t_and_f_ps = zero_order.TP + zero_order.FP
     valid_ppv = t_and_f_ps != 0
 

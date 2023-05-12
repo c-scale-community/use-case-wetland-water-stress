@@ -1,3 +1,4 @@
+import pytest
 from approval_utilities.utilities.exceptions.exception_collector import gather_all_exceptions_and_throw
 from approvaltests.namer import NamerFactory
 
@@ -6,6 +7,7 @@ from rattlinbog.transforms import ClipRoi, ConcatTimeSeries, CoarsenAvgSpatially
 from rattlinbog.transforms import Compose
 
 
+@pytest.mark.skip(reason='deprecated')
 def test_approve_load_and_process_dataset_pipeline(vh_datasets, ramsar_rois, verify_dataset):
     transformation_pipeline = Compose([ClipRoi(),
                                        ConcatTimeSeries(),

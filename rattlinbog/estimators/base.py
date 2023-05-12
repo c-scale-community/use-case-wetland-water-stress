@@ -1,6 +1,6 @@
 from abc import abstractmethod, ABC
 from dataclasses import dataclass
-from typing import Sequence, Dict, Callable, Optional
+from typing import Sequence, Dict, Optional
 
 from numpy.typing import NDArray
 from sklearn.base import BaseEstimator
@@ -22,27 +22,13 @@ class EstimateDescription:
 # noinspection PyPep8Naming,PyAttributeOutsideInit
 class Estimator(BaseEstimator):
     @abstractmethod
-    def predict(self, X: NDArray) -> NDArray:
+    def predict(self, X: NDArray, **kwargs) -> NDArray:
         ...
 
     @property
     @abstractmethod
     def out_description(self) -> EstimateDescription:
         ...
-
-
-class Scoreable:
-    @abstractmethod
-    def loss_for_estimate(self, estimate: NDArray, ground_truth: NDArray) -> float:
-        ...
-
-    @abstractmethod
-    def score_estimate(self, estimate: NDArray, ground_truth: NDArray) -> Score:
-        ...
-
-
-class ScoreableEstimator(Estimator, Scoreable, ABC):
-    ...
 
 
 class LogSink(Protocol):
@@ -55,30 +41,31 @@ class LogSink(Protocol):
         ...
 
 
-@dataclass
-class Validation:
-    loss: float
-    score: Score
+class ValidationSource(ABC):
+    @property
+    @abstractmethod
+    def parameters(self) -> NDArray:
+        ...
+
+    @property
+    @abstractmethod
+    def ground_truth(self) -> NDArray:
+        ...
+
+    @abstractmethod
+    def make_estimation_using(self, model: Estimator, estimation_kwargs: Optional[Dict] = None) -> NDArray:
+        ...
 
 
 @dataclass
-class IntervalLogging:
-    frequency: int
+class ValidationLogging:
     log_sink: LogSink
-
-
-@dataclass
-class ValidationLogging(IntervalLogging):
-    validator: Callable[[Estimator], Validation]
-
-
-@dataclass
-class ImageLogging(IntervalLogging):
-    image_producer: Callable[[Estimator], NDArray]
+    source: ValidationSource
+    score_frequency: Optional[int] = None
+    image_frequency: Optional[int] = None
 
 
 @dataclass
 class LogConfig:
     log_sink: LogSink
     validation: Optional[ValidationLogging] = None
-    image: Optional[ImageLogging] = None

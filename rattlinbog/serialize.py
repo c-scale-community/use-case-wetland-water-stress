@@ -1,9 +1,8 @@
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Union, get_args, Tuple, List
+from typing import Any, Union, get_args, List
 
 import numpy as np
-from shapely.geometry import MultiPolygon, Polygon
 from xarray import Dataset
 
 from rattlinbog.loaders import DATE_FORMAT, ROI
