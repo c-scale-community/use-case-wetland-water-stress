@@ -23,8 +23,13 @@ def sample(src_root: Path, dst_root: Path, config: SamplingConfig) -> None:
     for zarr in src_df['filepath']:
         ds = xr.open_zarr(zarr).persist()
         sample_indices = make_balanced_sample_indices_for(ds, config)
-        out_name = Path(str(YeodaFilename.from_filename(Path(zarr).stem))).with_suffix('.zarr')
-        store_as_compressed_zarr(sample_indices.to_dataset(name='samples'), dst_root / out_name)
+        smart_name = YeodaFilename.from_filename(Path(zarr).stem)
+        smart_name['var_name'] = f"SPL-IDC-{smart_name['var_name']}"
+        smart_name['sensor_field'] = f"PS{config.patch_size}-NS{config.n_samples}-OS{config.oversampling_size}"
+        out_name = Path(str(smart_name)).with_suffix('.zarr')
+        out_dir = dst_root / "V1M0R1/EQUI7_EU020M" / smart_name['tile_name']
+        out_dir.mkdir(parents=True, exist_ok=True)
+        store_as_compressed_zarr(sample_indices.to_dataset(name='samples'), out_dir / out_name)
 
 
 if __name__ == '__main__':
