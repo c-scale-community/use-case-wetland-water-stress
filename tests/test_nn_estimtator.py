@@ -4,22 +4,21 @@ import numpy as np
 import pytest
 import torch as th
 import torch.cuda
+from assertions import gather_all_exceptions
+from doubles import NNEstimatorStub, LogSpy, NNEstimatorSpy, ValidationSourceStub
+from factories import make_raster
 from numpy.typing import NDArray
 from sklearn import clone
 from sklearn.utils.estimator_checks import check_estimator
 from torch.nn import Sigmoid, MSELoss
 from torch.optim.adam import Adam
 from torch.utils.data import IterableDataset
-from xarray import Dataset
 
-from assertions import gather_all_exceptions
-from doubles import NNEstimatorStub, LogSpy, NNEstimatorSpy, ValidationSourceStub
-from factories import make_raster
 from rattlinbog.estimators.apply import apply
 from rattlinbog.estimators.base import ValidationLogging, LogConfig
 from rattlinbog.estimators.wetland_classifier import WetlandClassifier
 from rattlinbog.th_extensions.nn.unet import UNet
-from rattlinbog.th_extensions.utils.dataset_splitters import PARAMS_KEY, GROUND_TRUTH_KEY
+from tests.helpers.doubles import ModelSinkSpy
 
 
 @pytest.fixture
@@ -100,6 +99,11 @@ def log_sink():
 
 def make_log_sink():
     return LogSpy()
+
+
+@pytest.fixture
+def model_sink():
+    return ModelSinkSpy()
 
 
 @pytest.fixture
@@ -189,12 +193,18 @@ def assert_received_images_at_correct_frequency(train_sink, valid_sink, n_traini
 
 def test_logging_sets_model_only_temporarily_in_eval_mode(
         nn_estimator_params, nn_estimator_logging, generated_dataset, log_sink, zero_output, valid_src):
-    nn_estimator_logging.set_params(log_cfg=LogConfig(log_sink,
-                                                      ValidationLogging(log_sink, valid_src, 2, 5)))
-
+    nn_estimator_logging.set_params(log_cfg=LogConfig(log_sink, ValidationLogging(log_sink, valid_src, 2, 5)))
     nn_estimator_logging.fit(generated_dataset(10 * nn_estimator_params['batch_size']))
-
     assert nn_estimator_logging.is_net_training_during_optimization_step == [True] * 10
+
+
+def test_validation_logging_saves_snapshot_of_best_model_so_far(
+        nn_estimator_logging, nn_estimator_params, generated_dataset, log_sink, valid_src, model_sink):
+    nn_estimator_logging.set_params(log_cfg=LogConfig(log_sink, ValidationLogging(log_sink, valid_src, 2, 5,
+                                                                                  model_sink=model_sink)))
+    nn_estimator_logging.fit(generated_dataset(10 * nn_estimator_params['batch_size']))
+    assert model_sink.received_model == nn_estimator_logging
+    assert {'SCORE_A', 'SCORE_B'} == set(model_sink.received_score.keys())
 
 
 def test_wetland_classification_estimator_protocol(wl_estimator, one_input, one_output):

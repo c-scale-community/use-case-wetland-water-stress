@@ -6,7 +6,7 @@ import numpy as np
 import torch as th
 from numpy.typing import NDArray
 
-from rattlinbog.estimators.base import Estimator, Score, EstimateDescription, LogSink, ValidationSource
+from rattlinbog.estimators.base import Estimator, Score, EstimateDescription, LogSink, ValidationSource, ModelSink
 from rattlinbog.estimators.nn_estimator import NNEstimator
 from rattlinbog.th_extensions.utils.dataset_splitters import split_to_params_and_ground_truth
 
@@ -124,3 +124,13 @@ class ValidationSourceStub(ValidationSource):
     def make_estimation_using(self, model: Estimator, estimation_kwargs: Optional[Dict] = None):
         assert model is not None
         return self.gt
+
+
+class ModelSinkSpy(ModelSink):
+    def __init__(self):
+        self.received_model = None
+        self.received_score = None
+
+    def snapshot(self, model: Estimator, score: Dict) -> None:
+        self.received_model = model
+        self.received_score = score

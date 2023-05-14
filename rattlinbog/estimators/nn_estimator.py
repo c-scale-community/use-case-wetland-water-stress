@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
+from pathlib import Path
 from typing import Union, Iterator, Dict, Any, Callable, Iterable, Optional
 
 import torch as th
@@ -38,6 +39,10 @@ class NNEstimator(Estimator, ABC):
         self.optim_factory = optim_factory
         self.loss_fn = loss_fn
         self.log_cfg = log_cfg
+
+    @classmethod
+    def from_snapshot(cls, file: Path, **kwargs) -> "NNEstimator":
+        return cls(th.load(file), **kwargs)
 
     def fit(self, X: Dataset, y=None) -> "NNEstimator":
         dataloader = DataLoader(X, batch_size=self.batch_size)
@@ -84,6 +89,8 @@ class NNEstimator(Estimator, ABC):
             valid_cfg.log_sink.add_scalar("loss", valid_loss, step)
             for n, s in valid_score.items():
                 valid_cfg.log_sink.add_scalar(n, s, step)
+            if valid_cfg.model_sink is not None:
+                valid_cfg.model_sink.snapshot(self, valid_score)
 
         if valid_cfg and self._should_log(valid_cfg.image_frequency, step):
             valid_src = valid_cfg.source

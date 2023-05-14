@@ -51,6 +51,8 @@ class WetlandClassifier(NNEstimator, ClassifierMixin):
         gt_b = th.as_tensor(ground_truth == 1)
         if gt_b.ndim == 2:
             gt_b = gt_b[None, :, :]
+        if param.shape[0] > 3:
+            param = param[:3]
 
         mask = th.concat([gt_b, est_b, gt_b & est_b])
         bg = (th.clip(param, 0, 1) * 160).type(th.uint8)

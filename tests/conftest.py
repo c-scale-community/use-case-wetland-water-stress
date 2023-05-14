@@ -116,4 +116,3 @@ def pytest_addoption(parser):
 @pytest.fixture(scope="session")
 def should_plot(pytestconfig):
     return pytestconfig.getoption("plot")
-

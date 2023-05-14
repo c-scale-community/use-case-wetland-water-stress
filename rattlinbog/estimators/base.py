@@ -41,6 +41,12 @@ class LogSink(Protocol):
         ...
 
 
+class ModelSink(Protocol):
+    @abstractmethod
+    def snapshot(self, model, score: Dict) -> None:
+        ...
+
+
 class ValidationSource(ABC):
     @property
     @abstractmethod
@@ -63,6 +69,7 @@ class ValidationLogging:
     source: ValidationSource
     score_frequency: Optional[int] = None
     image_frequency: Optional[int] = None
+    model_sink: Optional[ModelSink] = None
 
 
 @dataclass
