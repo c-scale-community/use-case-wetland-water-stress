@@ -54,7 +54,7 @@ def main():
     log_cfg = make_validation_log_cfg(valid_mosaic, train_writer, valid_writer, 10, 20)
 
     estimator = WetlandClassifier(unet, batch_size=16, log_cfg=log_cfg)
-    train(estimator, train_mosaic, sample_mosaic, 2000)
+    train(estimator, train_mosaic, sample_mosaic, 32000)
 
 
 def _preprocess(mosaic):
