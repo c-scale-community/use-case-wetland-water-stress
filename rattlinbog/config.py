@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Tuple, Sequence, Optional
+from typing import Tuple, Sequence, Optional, Literal
 
 from yaml import YAMLObject, SafeLoader
 
@@ -11,6 +11,7 @@ class Restructure(YAMLObject):
 
     chunk_size: int
     rois: Sequence[Tuple[int, int, int, int]]
+    parameter_type: Literal['hparam', 'mmeans']
 
 
 @dataclass

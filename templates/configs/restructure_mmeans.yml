@@ -2,4 +2,4 @@
 chunk_size: 500
 rois:
   - [0, 0, 15000, 15000]
-parameter_type: 'hparam'
+parameter_type: 'mmeans'
