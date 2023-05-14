@@ -23,4 +23,4 @@ def test_fast_binary_confusion_matrix_performance():
     predicted = np.random.randint(0, 2, 100000) == 1
     sklearn_runtime = timeit(lambda: confusion_matrix(ground_truth, predicted), number=100)
     binary_runtime = timeit(lambda: confusion_matrix_fast_binary(ground_truth, predicted), number=100)
-    assert binary_runtime < sklearn_runtime * 0.5, sklearn_runtime
+    assert binary_runtime < sklearn_runtime * 0.01, sklearn_runtime
