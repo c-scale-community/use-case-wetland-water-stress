@@ -14,6 +14,7 @@ from torchvision.utils import make_grid, draw_segmentation_masks
 from rattlinbog.estimators.base import EstimateDescription, LogConfig, Score
 from rattlinbog.estimators.nn_estimator import NNEstimator
 from rattlinbog.evaluate.classification import score_first_order, score_second_order, score_zero_order
+from rattlinbog.evaluate.confusion_matrix_binary import confusion_matrix_fast_binary
 from rattlinbog.th_extensions.nn.unet import UNet
 
 
@@ -35,7 +36,7 @@ class WetlandClassifier(NNEstimator, ClassifierMixin):
 
     def _score_estimate(self, estimates: NDArray, ground_truth: NDArray) -> Score:
         estimates = (estimates > 0.5).ravel()
-        cm = confusion_matrix(ground_truth.ravel(), estimates)
+        cm = confusion_matrix_fast_binary(ground_truth.ravel(), estimates)
         zro = score_zero_order(cm)
         fst = score_first_order(zro)
         snd = score_second_order(fst)
