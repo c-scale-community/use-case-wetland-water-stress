@@ -59,7 +59,7 @@ class MultiClassEstimator(Estimator):
 
 
 class NNEstimatorStub(NNEstimator):
-    def _score_estimate(self, estimate: NDArray, ground_truth: NDArray) -> Score:
+    def score_estimate(self, estimate: NDArray, ground_truth: NDArray) -> Score:
         return {'SCORE_A': 0.42, 'SCORE_B': 42}
 
     @property

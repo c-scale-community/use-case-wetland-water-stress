@@ -7,7 +7,7 @@ from numpy.random import Generator
 from scipy.ndimage import binary_dilation
 from xarray import Dataset
 
-from doubles import LogSpy
+from doubles import LogSpy, ModelSinkSpy
 from factories import make_raster
 from rattlinbog.estimators.wetland_classifier import WetlandClassifier
 from rattlinbog.pipeline.factory_functions import make_validation_log_cfg
@@ -75,7 +75,7 @@ def valid_log():
 
 @pytest.fixture
 def log_cfg(valid_ds, train_log, valid_log):
-    return make_validation_log_cfg(valid_ds, train_log, valid_log, 10, 99)
+    return make_validation_log_cfg(valid_ds, train_log, valid_log, 10, 99, ModelSinkSpy())
 
 
 @pytest.fixture

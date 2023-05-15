@@ -85,7 +85,7 @@ class NNEstimator(Estimator, ABC):
             valid_est = self._refine_raw_prediction(valid_estimate_raw)
 
             valid_loss = self._loss_for_estimate(valid_estimate_raw, valid_gt)
-            valid_score = self._score_estimate(valid_est, valid_gt)
+            valid_score = self.score_estimate(valid_est, valid_gt)
             valid_cfg.log_sink.add_scalar("loss", valid_loss, step)
             for n, s in valid_score.items():
                 valid_cfg.log_sink.add_scalar(n, s, step)
@@ -111,10 +111,10 @@ class NNEstimator(Estimator, ABC):
         return self.loss_fn(x, y)
 
     def score(self, X: NDArray, y: NDArray) -> Score:
-        return self._score_estimate(self.predict(X), y)
+        return self.score_estimate(self.predict(X), y)
 
     @abstractmethod
-    def _score_estimate(self, x: NDArray, y: NDArray) -> Score:
+    def score_estimate(self, x: NDArray, y: NDArray) -> Score:
         ...
 
     @staticmethod
