@@ -19,6 +19,7 @@ from rattlinbog.th_extensions.nn.unet import UNet
 from rattlinbog.th_extensions.utils.dataset_splitters import PARAMS_KEY
 
 DATA_ROOT = Path("/data/wetland/")
+OPEN_WATER_MEAN_BSC = -18.85
 
 
 def main(dataset_type: str) -> None:
@@ -54,6 +55,9 @@ def retrieve_train_and_valid_mosaics(dataset_type):
     if dataset_type == 'hparam':
         train_mosaic = _preprocess_hparam(train_mosaic)
         valid_mosaic = _preprocess_hparam(valid_mosaic)
+    elif dataset_type == 'mmean':
+        train_mosaic = _preprocess_mmean(train_mosaic)
+        valid_mosaic = _preprocess_mmean(valid_mosaic)
 
     valid_mosaic = valid_mosaic.persist()
     return train_mosaic, valid_mosaic
@@ -85,6 +89,15 @@ def preprocess_rgb_comp(x):
 
 def normalize(x, min_val, max_val):
     return (x - min_val) / (max_val - min_val)
+
+
+def _preprocess_mmean(mosaic):
+    mosaic[PARAMS_KEY] = mosaic[PARAMS_KEY].map_blocks(preprocess_sig0, template=mosaic[PARAMS_KEY])
+    return mosaic
+
+
+def preprocess_sig0(x):
+    return x.fillna(OPEN_WATER_MEAN_BSC)
 
 
 def retrieve_sample_df():
