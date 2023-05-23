@@ -43,6 +43,10 @@ def restructure(tile: str, parameter_file_ds_root: Path, mask_file_ds_root: Path
                                                  grid_name=grid_name,
                                                  tile_name=tile_name))))
         out = dst_root / f"EQUI7_{grid_name}" / tile_name / smart_name.with_suffix('.zarr')
+        if out.exists():
+            print(f"{out.name} already exists, skipping.")
+            continue
+
         out.parent.mkdir(parents=True, exist_ok=True)
 
         top, left, height, width = roi
