@@ -31,10 +31,10 @@ def restructure(tile: str, parameter_file_ds_root: Path, mask_file_ds_root: Path
         raise NotImplementedError(config.parameter_type)
 
     mask_tile_root = mask_file_ds_root / f"EQUI7_{grid_name}" / tile_name
-    mask_df = gather_files(mask_tile_root, yeoda_naming_convention)['filepath']
+    mask_df = gather_files(mask_tile_root, yeoda_naming_convention)
     if config.mask_extra_field is not None:
         mask_df = mask_df[mask_df['extra_field'] == config.mask_extra_field]
-    mask_file = mask_df.iloc[0]
+    mask_file = mask_df['filepath'].iloc[0]
     mask = rioxarray.open_rasterio(mask_file, chunks="auto")
 
     restructured_ds = Dataset(dict(params=parameters_arrays, ground_truth=mask[0]))
