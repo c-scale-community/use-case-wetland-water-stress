@@ -31,15 +31,18 @@ def restructure(tile: str, parameter_file_ds_root: Path, mask_file_ds_root: Path
         raise NotImplementedError(config.parameter_type)
 
     mask_tile_root = mask_file_ds_root / f"EQUI7_{grid_name}" / tile_name
-    mask_file = gather_files(mask_tile_root, yeoda_naming_convention)['filepath'].iloc[0]
+    mask_df = gather_files(mask_tile_root, yeoda_naming_convention)['filepath']
+    if config.mask_extra_field is not None:
+        mask_df = mask_df[mask_df['extra_field'] == config.mask_extra_field]
+    mask_file = mask_df.iloc[0]
     mask = rioxarray.open_rasterio(mask_file, chunks="auto")
 
     restructured_ds = Dataset(dict(params=parameters_arrays, ground_truth=mask[0]))
 
     for roi in config.rois:
         parent_extra = YeodaFilename.from_filename(mask_file.name)['extra_field']
-        smart_name = Path(str(YeodaFilename(dict(var_name=f'{parameter_file_ds_root.parent.name}-MASK',
-                                                 extra_field=f"{mask_file_ds_root.name}-{parent_extra}-ROI-{'-'.join(map(str, roi))}",
+        smart_name = Path(str(YeodaFilename(dict(var_name=f'{parameter_file_ds_root.parent.name}-MASK-{mask_file_ds_root.parent.name}',
+                                                 extra_field=f"{parent_extra}-ROI-{'-'.join(map(str, roi))}",
                                                  datetime_1=f"{config.datetime_1_year}0101T000000" if config.datetime_1_year else "",
                                                  datetime_2=f"{config.datetime_2_year}0101T000000" if config.datetime_2_year else "",
                                                  grid_name=grid_name,

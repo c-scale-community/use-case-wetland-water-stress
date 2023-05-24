@@ -14,6 +14,7 @@ class Restructure(YAMLObject):
     parameter_type: Literal['hparam', 'mmeans']
     datetime_1_year: Optional[int] = None
     datetime_2_year: Optional[int] = None
+    mask_extra_field: Optional[str] = None
 
 
 @dataclass
