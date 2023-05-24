@@ -26,7 +26,7 @@ def restructure(tile: str, parameter_file_ds_root: Path, mask_file_ds_root: Path
     if config.parameter_type == 'hparam':
         parameters_arrays = load_hparam_ds(parameter_file_ds_root, grid_name, tile_name)
     elif config.parameter_type == 'mmeans':
-        parameters_arrays = load_mmean_ds(parameter_file_ds_root, grid_name, tile_name)
+        parameters_arrays = load_mmean_ds(parameter_file_ds_root, grid_name, tile_name, config)
     else:
         raise NotImplementedError(config.parameter_type)
 
@@ -63,12 +63,13 @@ def load_hparam_ds(ds_root, grid_name, tile_name):
     return parameters_arrays
 
 
-def load_mmean_ds(ds_root: Path, grid_name: str, tile_name: str) -> DataArray:
+def load_mmean_ds(ds_root: Path, grid_name: str, tile_name: str, config: Restructure) -> DataArray:
     params_df = gather_files(ds_root / f"EQUI7_{grid_name}" / tile_name, yeoda_naming_convention)
     only_oavg = params_df['extra_field'].str.startswith('OAVG')
     params_df = params_df[only_oavg]
-    one_year_long_only = (params_df['datetime_2'] - params_df['datetime_1']).dt.days <= 365
-    params_df = params_df[one_year_long_only]
+    year_selection = (params_df['datetime_1'].dt.year == config.datetime_1_year) & \
+                     (params_df['datetime_2'].dt.year == config.datetime_2_year)
+    params_df = params_df[year_selection]
     params_df['month'] = [int(e.split('-')[-1]) for e in params_df['extra_field']]
     params_df = params_df.sort_values(['datetime_1', 'month'])
     params_ds = xr.open_mfdataset(params_df['filepath'], concat_dim='band', combine='nested', mask_and_scale=False)

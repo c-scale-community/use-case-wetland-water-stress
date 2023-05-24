@@ -3,3 +3,5 @@ chunk_size: 500
 rois:
   - [0, 0, 15000, 15000]
 parameter_type: 'mmeans'
+datetime_1_year: 2019
+datetime_2_year: 2019

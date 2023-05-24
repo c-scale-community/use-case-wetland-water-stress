@@ -12,6 +12,8 @@ class Restructure(YAMLObject):
     chunk_size: int
     rois: Sequence[Tuple[int, int, int, int]]
     parameter_type: Literal['hparam', 'mmeans']
+    datetime_1_year: Optional[int] = None
+    datetime_2_year: Optional[int] = None
 
 
 @dataclass
