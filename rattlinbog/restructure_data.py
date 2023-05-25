@@ -24,7 +24,7 @@ def restructure(tile: str, parameter_file_ds_root: Path, mask_file_ds_root: Path
     grid_name, tile_name = e7tile.name.split('_')
 
     if config.parameter_type == 'hparam':
-        parameters_arrays = load_hparam_ds(parameter_file_ds_root, grid_name, tile_name)
+        parameters_arrays = load_hparam_ds(parameter_file_ds_root, grid_name, tile_name, config)
     elif config.parameter_type == 'mmeans':
         parameters_arrays = load_mmean_ds(parameter_file_ds_root, grid_name, tile_name, config)
     else:
@@ -33,7 +33,7 @@ def restructure(tile: str, parameter_file_ds_root: Path, mask_file_ds_root: Path
     mask_tile_root = mask_file_ds_root / f"EQUI7_{grid_name}" / tile_name
     mask_df = gather_files(mask_tile_root, yeoda_naming_convention)
     if config.mask_extra_field is not None:
-        mask_df = mask_df[mask_df['extra_field'] == config.mask_extra_field]
+        mask_df = mask_df[mask_df['extra_field'].map(str) == str(config.mask_extra_field)]
     mask_file = mask_df['filepath'].iloc[0]
     mask = rioxarray.open_rasterio(mask_file, chunks="auto")
 
@@ -59,8 +59,11 @@ def restructure(tile: str, parameter_file_ds_root: Path, mask_file_ds_root: Path
         store_as_compressed_zarr(roi.chunk({'parameter': -1, 'y': config.chunk_size, 'x': config.chunk_size}), out)
 
 
-def load_hparam_ds(ds_root, grid_name, tile_name):
+def load_hparam_ds(ds_root, grid_name, tile_name, config):
     parameter_files = gather_files(ds_root / f"EQUI7_{grid_name}" / tile_name, yeoda_naming_convention)
+    year_selection = (parameter_files['datetime_1'].dt.year == config.datetime_1_year) & \
+                     (parameter_files['datetime_2'].dt.year == config.datetime_2_year)
+    parameter_files = parameter_files[year_selection]
     parameter_files = parameter_files.sort_values('extra_field')
     parameters = list(sorted(set(parameter_files['var_name'])))
     parameters_arrays = preprocess_hparams(xr.concat([load_harmonic_orbits(parameter_files, p) for p in parameters],

@@ -1,3 +1,4 @@
+import logging
 import re
 from dataclasses import dataclass
 from datetime import datetime
@@ -86,8 +87,12 @@ def load_harmonic_orbits(harmonic_file_ds: DataFrame, variable: str) -> DataArra
         file = ds.encoding['source']
         with rasterio.open(file) as rds:
             tags = rds.tags()
-            scale = float(tags['scale_factor'])
-            return (ds / scale).astype(np.float32)
+            if 'scale_factor' in tags:
+                logging.warning(f"legacy scaling in: {file}")
+                scale = float(tags['scale_factor'])
+                return (ds / scale).astype(np.float32)
+            else:
+                return ds
 
     var_selection = harmonic_file_ds.loc[harmonic_file_ds['var_name'] == variable]
     orbit_files = var_selection['filepath']
