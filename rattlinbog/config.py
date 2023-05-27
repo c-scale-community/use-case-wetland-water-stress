@@ -26,3 +26,16 @@ class SamplingConfig(YAMLObject):
     n_samples: int
     oversampling_size: Optional[int] = 2
     never_nans: Optional[bool] = False
+
+
+@dataclass
+class ParameterSelection(YAMLObject):
+    yaml_tag = "!ParameterSelection"
+    yaml_loader = SafeLoader
+
+    root: str
+    parameter_type: Literal['hparam', 'mmean']
+    var_name: str
+    datetime_1_year: int
+    datetime_2_year: int
+    extra_field: Optional[str] = None

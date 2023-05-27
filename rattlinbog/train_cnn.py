@@ -1,16 +1,13 @@
 import argparse
-import re
 from datetime import datetime
 from pathlib import Path
 
 import numpy as np
 import torch as th
-from eotransform_pandas.filesystem.gather import gather_files
-from eotransform_pandas.filesystem.naming.geopathfinder_conventions import yeoda_naming_convention
-from pandas import DataFrame
 from torch.utils.tensorboard import SummaryWriter
 
 from rattlinbog.estimators.wetland_classifier import WetlandClassifier
+from rattlinbog.filesystem import retrieve_params_df, retrieve_sample_df
 from rattlinbog.io_xarray.concatenate import concatenate_training_datasets, concatenate_indices_dataset
 from rattlinbog.persist.serialize_best_scoring_nn_model import SerializeBestScoringNNModel
 from rattlinbog.pipeline.factory_functions import make_validation_log_cfg
@@ -18,7 +15,6 @@ from rattlinbog.pipeline.train import train
 from rattlinbog.th_extensions.nn.unet import UNet
 from rattlinbog.th_extensions.utils.dataset_splitters import PARAMS_KEY
 
-DATA_ROOT = Path("/data/wetland/")
 OPEN_WATER_MEAN_BSC = -18.85
 
 
@@ -63,16 +59,6 @@ def retrieve_train_and_valid_mosaics(dataset_type):
     return train_mosaic, valid_mosaic
 
 
-def retrieve_params_df(dataset_type: str) -> DataFrame:
-    params_df = gather_files(DATA_ROOT, yeoda_naming_convention, [
-        re.compile(dataset_type),
-        re.compile('V1M0R1'),
-        re.compile('EQUI7_EU020M'),
-        re.compile('E\d\d\dN\d\d\dT3')
-    ])
-    return params_df
-
-
 def _preprocess_hparam(mosaic):
     mosaic = mosaic.sel(parameter=['SIG0-HPAR-PHS', 'SIG0-HPAR-AMP', 'SIG0-HPAR-M0'])
     mosaic[PARAMS_KEY] = mosaic[PARAMS_KEY].map_blocks(preprocess_rgb_comp, template=mosaic[PARAMS_KEY])
@@ -98,15 +84,6 @@ def _preprocess_mmean(mosaic):
 
 def preprocess_sig0(x):
     return x.fillna(OPEN_WATER_MEAN_BSC)
-
-
-def retrieve_sample_df():
-    return gather_files(DATA_ROOT, yeoda_naming_convention, [
-        re.compile('samples'),
-        re.compile('V1M0R1'),
-        re.compile('EQUI7_EU020M'),
-        re.compile('E\d\d\dN\d\d\dT3')
-    ])
 
 
 def make_unet_for(dataset_type: str):
