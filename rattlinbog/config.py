@@ -48,5 +48,5 @@ class SamplesSelection(YAMLObject):
 
     root: str
     var_name: str
-    sensor: str
+    sensor_field: str
     extra_field: str

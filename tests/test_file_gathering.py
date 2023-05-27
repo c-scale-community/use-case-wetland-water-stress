@@ -60,14 +60,18 @@ def test_retrieve_hparam_archives(hparam_selection, expected_hparam_archives):
 @pytest.fixture
 def expected_samples_archives(data_root):
     tile_root = data_root / "samples/V1M0R1/EQUI7_EU020M"
-    # generate_file(tile_root, "E051N015T3", "SIG0-HPAR-MASK-CCI", datetime(2019, 1, 1), datetime(2021, 1, 1), "2020")
-    # generate_file(tile_root, "E060N012T3", "SIG0-HPAR-MASK-CCI", datetime(2019, 1, 1), datetime(2021, 1, 1), "2020")
-    # generate_file(tile_root, "E051N015T3", "SIG0-HPAR-MASK-CCI", datetime(2017, 1, 1), datetime(2018, 1, 1), "2020")
-    # generate_file(tile_root, "E060N012T3", "SIG0-HPAR-MASK-CCI", datetime(2017, 1, 1), datetime(2018, 1, 1), "2020")
-    # generate_file(tile_root, "E051N015T3", "SIG0-HPAR-MASK-CORINE-BOGS-MARSHES", datetime(2017, 1, 1),
-    #               datetime(2018, 1, 1), "2018")
-    # generate_file(tile_root, "E060N012T3", "SIG0-HPAR-MASK-CORINE-BOGS-MARSHES", datetime(2017, 1, 1),
-    #               datetime(2018, 1, 1), "2018")
+    generate_sample_file(tile_root, "E051N015T3", "SPL-IDC-SIG0-HPAR-MASK-CCI", "PS64-NS100000-OS2",
+                         "2020-ROI-0-0-15000-15000")
+    generate_sample_file(tile_root, "E060N012T3", "SPL-IDC-SIG0-HPAR-MASK-CCI", "PS64-NS100000-OS2",
+                         "2020-ROI-0-0-15000-15000")
+    generate_sample_file(tile_root, "E051N015T3", "SPL-IDC-SIG0-HPAR-MASK-CCI", "PS64-NS10000-OS2",
+                         "2018-ROI-0-0-15000-15000")
+    generate_sample_file(tile_root, "E060N012T3", "SPL-IDC-SIG0-HPAR-MASK-CCI", "PS64-NS10000-OS2",
+                         "2018-ROI-0-0-15000-15000")
+    generate_sample_file(tile_root, "E051N015T3", "SPL-IDC-SIG0-HPAR-MASK-CORINE-BOGS-MARSHES", "PS64-NS100000-OS2",
+                         "2018-ROI-0-0-15000-15000")
+    generate_sample_file(tile_root, "E060N012T3", "SPL-IDC-SIG0-HPAR-MASK-CORINE-BOGS-MARSHES", "PS64-NS100000-OS2",
+                         "2018-ROI-0-0-15000-15000")
     expected = []
     expected.append(generate_sample_file(tile_root, "E051N015T3", "SPL-IDC-SIG0-HPAR-MASK-CCI", "PS64-NS100000-OS2",
                                          "2018-ROI-0-0-15000-15000"))
