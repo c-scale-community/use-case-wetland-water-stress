@@ -1,0 +1,13 @@
+!TrainCNN
+parameter_selection: !ParameterSelection
+  root: "/data/wetland"
+  parameter_type: "hparam"
+  var_name: "SIG0-HPAR-MASK-CCI"
+  datetime_1_year: 2017
+  datetime_2_year: 2018
+  extra_field: "2018"
+samples_selection: !SamplesSelection
+  root: "/data/wetland"
+  var_name: "SPL-IDC-SIG0-HPAR-MASK-CCI"
+  sensor_field: "PS64-NS100000-OS2"
+  extra_field: "2018-ROI-0-0-15000-15000"

@@ -50,3 +50,12 @@ class SamplesSelection(YAMLObject):
     var_name: str
     sensor_field: str
     extra_field: str
+
+
+@dataclass
+class TrainCNN(YAMLObject):
+    yaml_tag = "!TrainCNN"
+    yaml_loader = SafeLoader
+
+    parameter_selection: ParameterSelection
+    samples_selection: SamplesSelection
