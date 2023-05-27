@@ -25,13 +25,18 @@ def hparam_root(tmp_path, tile_under_test):
     hparams = ["SIG0-HPAR-C1", "SIG0-HPAR-C2", "SIG0-HPAR-C3",
                "SIG0-HPAR-M0", "SIG0-HPAR-NOBS", "SIG0-HPAR-STD",
                "SIG0-HPAR-S1", "SIG0-HPAR-S2", "SIG0-HPAR-S3"]
-    generate_filled_tile_arrays(root, tile_under_test, np.arange(9), hparams, "A001",
+    values = np.arange(9)
+    values[4] = 100
+    generate_filled_tile_arrays(root, tile_under_test, values, hparams, "A001",
                                 datetime(2019, 1, 1), datetime(2020, 1, 1))
-    generate_filled_tile_arrays(root, tile_under_test, np.arange(9) * 2, hparams, "D001",
+    generate_filled_tile_arrays(root, tile_under_test, values * 2, hparams, "D001",
                                 datetime(2019, 1, 1), datetime(2020, 1, 1))
-    generate_filled_tile_arrays(root, tile_under_test, np.arange(9), hparams, "A001",
+    values[4] = 31
+    generate_filled_tile_arrays(root, tile_under_test, values, hparams, "D003",
+                                datetime(2019, 1, 1), datetime(2020, 1, 1))
+    generate_filled_tile_arrays(root, tile_under_test, values, hparams, "A001",
                                 datetime(2018, 1, 1), datetime(2020, 1, 1))
-    generate_filled_tile_arrays(root, tile_under_test, np.arange(9) * 3, hparams, "D001",
+    generate_filled_tile_arrays(root, tile_under_test, values * 3, hparams, "D001",
                                 datetime(2018, 1, 1), datetime(2020, 1, 1))
     return root
 
@@ -104,17 +109,17 @@ def test_restructure_hparam_train_data(tile_under_test, hparam_root, mask_root, 
 
 
 def assert_selected_correct_hparams(hparams: DataArray) -> None:
-    assert np.all(hparams[0] == 0).values.item()
-    assert np.all(hparams[1] == 5 / 3).values.item()
-    assert np.all(hparams[2] == 3 + 1 / 3).values.item()
-    assert np.all(hparams[3] == 5).values.item()
-    assert np.all(hparams[4] == 12).values.item()
-    assert np.all(hparams[5] == 10).values.item()
-    assert np.all(hparams[6] == 11 + 2 / 3).values.item()
-    assert np.all(hparams[7] == 13 + 1 / 3).values.item()
-    assert np.all(hparams[8] == 8 + 1 / 3).values.item()
-    assert np.all(hparams[9] == np.sqrt(10 ** 2)).values.item()
-    assert np.all(hparams[10] == np.arctan2(10, 0)).values.item()
+    np.testing.assert_allclose(hparams[0].values, np.full((1200, 1200), 0))
+    np.testing.assert_allclose(hparams[1].values, np.full((1200, 1200), 5/3))
+    np.testing.assert_allclose(hparams[2].values, np.full((1200, 1200), 3+1/3))
+    np.testing.assert_allclose(hparams[3].values, np.full((1200, 1200), 5))
+    np.testing.assert_allclose(hparams[4].values, np.full((1200, 1200), 300))
+    np.testing.assert_allclose(hparams[5].values, np.full((1200, 1200), 10))
+    np.testing.assert_allclose(hparams[6].values, np.full((1200, 1200), 11 + 2/3))
+    np.testing.assert_allclose(hparams[7].values, np.full((1200, 1200), 13 + 1/3))
+    np.testing.assert_allclose(hparams[8].values, np.full((1200, 1200), 8 + 1/3))
+    np.testing.assert_allclose(hparams[9].values, np.full((1200, 1200), np.sqrt(10 ** 2)))
+    np.testing.assert_allclose(hparams[10].values, np.full((1200, 1200), np.arctan2(10, 0)))
 
 
 def assert_selected_correct_mask(mask: DataArray) -> None:
