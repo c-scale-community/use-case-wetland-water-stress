@@ -17,7 +17,12 @@ def retrieve_params_df(selection: ParameterSelection) -> DataFrame:
         re.compile('EQUI7_EU020M'),
         re.compile('E\d\d\dN\d\d\dT3')
     ])
-    return params_df
+    sel_mask = (params_df['var_name'] == selection.var_name) & \
+               (params_df['datetime_1'].dt.year == selection.datetime_1_year) & \
+               (params_df['datetime_2'].dt.year == selection.datetime_2_year)
+    if selection.extra_field is not None:
+        sel_mask = sel_mask & (params_df['extra_field'].map(str) == selection.extra_field)
+    return params_df[sel_mask]
 
 
 def retrieve_sample_df():
