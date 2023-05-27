@@ -39,3 +39,14 @@ class ParameterSelection(YAMLObject):
     datetime_1_year: int
     datetime_2_year: int
     extra_field: Optional[str] = None
+
+
+@dataclass
+class SamplesSelection(YAMLObject):
+    yaml_tag = "!SamplesSelection"
+    yaml_loader = SafeLoader
+
+    root: str
+    var_name: str
+    sensor: str
+    extra_field: str

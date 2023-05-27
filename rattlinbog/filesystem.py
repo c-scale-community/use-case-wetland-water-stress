@@ -25,8 +25,8 @@ def retrieve_params_df(selection: ParameterSelection) -> DataFrame:
     return params_df[sel_mask]
 
 
-def retrieve_sample_df():
-    return gather_files(DATA_ROOT, yeoda_naming_convention, [
+def retrieve_sample_df(selection: ParameterSelection):
+    return gather_files(Path(selection.root), yeoda_naming_convention, [
         re.compile('samples'),
         re.compile('V1M0R1'),
         re.compile('EQUI7_EU020M'),
