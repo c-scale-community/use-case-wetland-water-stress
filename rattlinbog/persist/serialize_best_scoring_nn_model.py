@@ -19,3 +19,4 @@ class SerializeBestScoringNNModel(ModelSink):
         if current > self.last_maximum:
             th.save(model.net, self.out_path / f"{model.__class__.__name__}-{self.score_key}-best.pt")
             self.last_maximum = current
+            (self.out_path / "score.txt").write_text(str(score))

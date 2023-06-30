@@ -29,7 +29,7 @@ def select_from_dict(d: Dict, i: int) -> Dict:
 class WetlandClassifier(NNEstimator, ClassifierMixin):
 
     def __init__(self, net: UNet, batch_size: int, log_cfg: Optional[LogConfig] = None):
-        super().__init__(net, batch_size, lambda p: Adam(p), BCEWithLogitsLoss(), log_cfg)
+        super().__init__(net, batch_size, lambda p: Adam(p, lr=0.01), BCEWithLogitsLoss(), log_cfg)
 
     def _refine_raw_prediction(self, estimate: NDArray) -> NDArray:
         return sigmoid(estimate)
