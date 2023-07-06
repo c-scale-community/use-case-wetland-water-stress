@@ -13,6 +13,8 @@ jobs:
           python-version: "3.10"
       - name: Test
         run: |
+          apt-get install libgdal-dev
+          pip install pygdal=="$(gdal-config --version).*"
           pip install -e .[test]
           pytest --cov tests/
       - name: Coverage comment
