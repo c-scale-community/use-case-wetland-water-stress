@@ -2,12 +2,11 @@ from datetime import datetime
 from typing import Dict, Sequence, Union
 
 import numpy as np
-import pytest
 import xarray as xr
 from xarray import Dataset
 
 from rattlinbog.data_group import DataGroup
-from rattlinbog.transforms import CoarsenAvgSpatially, ClipRoi, ConcatTimeSeries, ClipValues, RoundToInt16, \
+from rattlinbog.transforms import CoarsenAvgSpatially, ConcatTimeSeries, ClipValues, RoundToInt16, \
     StoreAsNetCDF, NameDatasets, EatMyData, SortByTime, ChunkGroup
 
 
@@ -46,14 +45,6 @@ def assert_group_arrays_eq(actual: DataGroup, expected_datas: Dict[str, Union[Da
                 xr.testing.assert_equal(a['1'], e['1'])
         else:
             xr.testing.assert_equal(actual[k][0]['1'], ds['1'])
-
-@pytest.mark.skip(reason='deprecated')
-def test_clip_roi_bounds(vh_datasets, ramsar_rois):
-    data_group = make_data_group(
-        dict(area_0=[Dataset(data_vars={'VH': vh_datasets[0]['VH']}, attrs=dict(roi=ramsar_rois[4]))])
-    )
-    clipped = ClipRoi()
-    assert clipped(data_group)['area_0'][0]['VH'].shape == (5260, 5149)
 
 
 def test_sort_by_time():
@@ -158,9 +149,7 @@ def test_chunk_groups():
                                       area_1=[make_dataset([[1]]), make_dataset([[2]])]))
     chunked = ChunkGroup(size=2)(data_group)
 
-
     assert len(chunked) == 2
     assert_group_arrays_eq(chunked[0], dict(area_0=[make_dataset([[0]]), make_dataset([[1]])],
                                             area_1=[make_dataset([[1]]), make_dataset([[2]])]))
     assert_group_arrays_eq(chunked[1], dict(area_0=[make_dataset([[2]])]))
-

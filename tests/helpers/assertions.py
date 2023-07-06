@@ -1,6 +1,17 @@
+from typing import Sequence
+
 import xarray as xr
-from approval_utilities.utilities.exceptions.multiple_exceptions import MultipleExceptions
 from xarray import Dataset
+
+
+def to_string(exception: Exception) -> str:
+    return f"{type(exception).__name__}: {str(exception)}"
+
+
+class MultipleExceptions(Exception):
+    def __init__(self, exceptions: Sequence[Exception]):
+        msg = "\n  " + "\n  ".join(map(to_string, exceptions))
+        super().__init__(msg)
 
 
 def gather_all_exceptions(params, code_to_execute):

@@ -16,7 +16,7 @@ setup(
                       "geopandas", "jupyter", "numba", "numpy", "matplotlib", "dask", "distributed", "geopathfinder",
                       "equi7grid", "affine", "zarr", "scikit-learn", "scikit-image", "dask-ml", "torch", "scipy",
                       "tqdm", "tensorboard", "pyyaml", "torchvision"],
-    extras_require={"test": ['pytest', 'pytest-cov', 'approvaltests', 'pytest-approvaltests-geo'],
+    extras_require={"test": ['pytest', 'pytest-cov'],
                     "views": ['holoviews', 'datashader', 'panel', 'param']},
     include_package_data=True,
     zip_safe=False,

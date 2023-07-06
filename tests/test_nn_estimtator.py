@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 import torch as th
 import torch.cuda
+
 from assertions import gather_all_exceptions
 from doubles import NNEstimatorStub, LogSpy, NNEstimatorSpy, ValidationSourceStub
 from factories import make_raster
