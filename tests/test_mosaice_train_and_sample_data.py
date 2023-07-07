@@ -35,7 +35,7 @@ def train_offset_by_one_east(tmp_path):
 
 
 def make_train_dataset(ys, xs):
-    gt = np.ones((100, 100), dtype=np.bool)
+    gt = np.ones((100, 100), dtype=bool)
     gt[:50, :] = False
     return Dataset({
         PARAMS_KEY: make_raster(np.ones((2, 100, 100), dtype=np.float32), coords={'y': ys, 'x': xs}),

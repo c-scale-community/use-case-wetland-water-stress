@@ -24,7 +24,7 @@ HYSTERESIS = 0.2
 @pytest.fixture
 def tile_dataset():
     values = np.random.randn(64, 512, 512).astype(np.float32)
-    gt = np.ones((512, 512), dtype=np.bool)
+    gt = np.ones((512, 512), dtype=bool)
     gt[:256, :] = False
 
     return Dataset({
@@ -39,7 +39,7 @@ def tile_dataset_with_nan():
     mostly_nan[0, :96, :] = np.nan
     mostly_nan[1, :, :96] = np.nan
 
-    gt = np.ones((128, 128), dtype=np.bool)
+    gt = np.ones((128, 128), dtype=bool)
     gt[:112, :] = False
 
     return Dataset({
@@ -62,7 +62,7 @@ def torch_tile_dataset(tile_dataset, fixed_rng):
 
 @pytest.fixture
 def tile_dataset_dummy():
-    gt = np.ones((128, 128), dtype=np.bool)
+    gt = np.ones((128, 128), dtype=bool)
     gt[:112, :] = False
     return Dataset({
         PARAMS_KEY: make_raster(np.ones((2, 128, 128), dtype=np.float32)),
