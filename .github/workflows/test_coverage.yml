@@ -14,8 +14,8 @@ jobs:
       - name: Test
         run: |
           sudo apt-get install -yq libgdal-dev
-          pip install pygdal=="$(gdal-config --version).*"
           pip install -e .[test]
+          pip install pygdal=="$(gdal-config --version).*"
           pytest --cov tests/
       - name: Coverage comment
         id: coverage_comment
