@@ -1,3 +1,4 @@
+[![Coverage badge](https://github.com/c-scale-community/use-case-wetland-water-stress/raw/python-coverage-comment-action-data/badge.svg)](https://github.com/c-scale-community/use-case-wetland-water-stress/tree/python-coverage-comment-action-data)
 # use-case-wetland-water-stress
 ![wetland-header](doc/images/wetland-header-img.png)
 With this pipeline we aim to provide users with the ability to train spatiotemporally robust machine learning models to detect and monitor wetlands, assessing their state over time.
