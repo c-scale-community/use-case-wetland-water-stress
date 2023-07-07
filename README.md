@@ -89,7 +89,7 @@ Finally, the last parameter defines the root directory of the datacube.
 
 Use `python rattlinbog/tile_cci_land_cover.py --help` for more details.
 
-### Restructure GeoTIFF stack data
+### Restructure GeoTIFF stacks
 
 The package provides a restructuring script to put a datacube stored as a stack of _GeoTIFFs_ in the
 required [zarr](https://zarr.dev/) format.
