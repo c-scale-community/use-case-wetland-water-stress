@@ -10,6 +10,23 @@ from rattlinbog.loaders import load_s1_datasets_from_file_list, load_rois
 
 sys.path.append((Path(__file__).parent / "helpers").as_posix())
 
+PERFORMANCE_TEST_ENV_VAR = 'USE_CASE_WETLAND_WATER_STRESS_RUN_PERF_TESTS'
+
+
+def pytest_addoption(parser):
+    parser.addoption(
+        "--performance", action="store_true", default=False, help="run performance tests"
+    )
+
+
+def pytest_collection_modifyitems(config, items):
+    if config.getoption("--performance") or os.getenv(PERFORMANCE_TEST_ENV_VAR):
+        return
+    skip_performance = pytest.mark.skip(reason="need --performance option to run")
+    for i in items:
+        if "performance" in i.keywords:
+            i.add_marker(skip_performance)
+
 
 @pytest.fixture
 def resource_path():
