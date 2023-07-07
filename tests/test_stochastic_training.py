@@ -122,7 +122,7 @@ def assert_torch_batch_sizes(loader: DataLoader, expected_sizes):
     assert [asser_tensor_and_get_batch_size(*b) for b in loader] == expected_sizes
 
 
-@pytest.performance
+@pytest.mark.performance
 def test_interleaved_loading_and_training(tile_dataset_dummy, splitter_with_loading_time):
     splitter_with_loading_time.set_loading_time(0.1)
 

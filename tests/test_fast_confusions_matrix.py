@@ -19,7 +19,7 @@ def assert_confusion_matrices_eq(actual, expected):
     np.testing.assert_array_equal(actual, expected)
 
 
-@pytest.performance
+@pytest.mark.performance
 def test_fast_binary_confusion_matrix_performance():
     ground_truth = np.random.randint(0, 2, 100000) == 1
     predicted = np.random.randint(0, 2, 100000) == 1
