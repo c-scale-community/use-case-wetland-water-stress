@@ -1,6 +1,7 @@
-import os
 import random
 import sys
+import os
+
 from pathlib import Path
 
 import numpy as np
@@ -18,6 +19,7 @@ def pytest_addoption(parser):
     parser.addoption(
         "--performance", action="store_true", default=False, help="run performance tests"
     )
+    parser.addoption("--plot", action="store_true")
 
 
 def pytest_collection_modifyitems(config, items):
@@ -66,10 +68,6 @@ def fixed_seed():
 @pytest.fixture
 def ramsar_rois(path_to_shape_file):
     return load_rois(path_to_shape_file)
-
-
-def pytest_addoption(parser):
-    parser.addoption("--plot", action="store_true")
 
 
 @pytest.fixture(scope="session")
