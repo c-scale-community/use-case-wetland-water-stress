@@ -7,7 +7,7 @@ from rattlinbog.sampling.sample_patches_from_dataset import make_balanced_sample
     sample_patches_from_dataset
 from rattlinbog.config import SamplingConfig
 from rattlinbog.th_extensions.utils.dataset_splitters import PARAMS_KEY, GROUND_TRUTH_KEY
-from tests.helpers.factories import make_raster
+from helpers.factories import make_raster
 
 
 @pytest.fixture

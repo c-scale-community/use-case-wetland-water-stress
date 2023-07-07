@@ -19,7 +19,7 @@ from rattlinbog.estimators.apply import apply
 from rattlinbog.estimators.base import ValidationLogging, LogConfig
 from rattlinbog.estimators.wetland_classifier import WetlandClassifier
 from rattlinbog.th_extensions.nn.unet import UNet
-from tests.helpers.doubles import ModelSinkSpy
+from helpers.doubles import ModelSinkSpy
 
 
 @pytest.fixture
