@@ -14,11 +14,19 @@ To execute the tests also install test dependencies:
 pip install -e .[test]
 ```
 
+You will also need to install python bindings for _gdal_ for instance using pygdal:
+
+```bash
+pip install pygdal=="$(gdal-config --version).*"
+```
+
 Use pytest to run the tests:
 
 ```bash
 pytest tests/
 ```
+
+Have a look at the GitHub workflow at [.github/workflows/test_coverage.yml](.github/workflows/test_coverage.yml) for an example on how to install and run tests on a linux machine.
 
 ## Data preparation
 
