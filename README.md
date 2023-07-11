@@ -4,12 +4,12 @@
 
 ![wetland-header](doc/images/wetland-header-img.png)
 With this pipeline we aim to provide users with the ability to train spatiotemporally robust machine learning models to
-detect and monitor wetlands, assessing their state over time.
+detect and monitor wetlands and thus assessing their state over time.
 Wetlands play a vital role in the ecosystem, but also have critical influence on methane emissions.
 Methane is around 25 times as powerful in trapping heat in the atmosphere, but because it does not stay in the
 atmosphere as long, it more has a short-term influence on the rate of climate change.
 See also
-this [article by NOAA](https://www.noaa.gov/news-release/increase-in-atmospheric-methane-set-another-record-during-2021)
+this [news release by NOAA](https://www.noaa.gov/news-release/increase-in-atmospheric-methane-set-another-record-during-2021)
 for more details.
 Wetlands have been one of the major drivers of methane in the atmosphere, acting as source instead of a sink while not
 being stable, including water stress as well as renaturation.
